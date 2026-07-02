@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, nativeImage, screen, shell, Tray } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, nativeImage, Notification, screen, shell, Tray } = require("electron");
 const { execFile } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -6,6 +6,12 @@ const path = require("node:path");
 const { promisify } = require("node:util");
 
 const { fetchSnapshotWithRetry } = require("./refresh");
+const {
+  buildAlertCandidates,
+  nextUnseenAlerts,
+  normalizeAlertState,
+  rememberDeliveredAlerts,
+} = require("./alerts");
 const {
   buildCliEnvironment,
   buildCliInvocation,
@@ -29,6 +35,8 @@ let isRefreshing = false;
 let refreshTimer = null;
 let settings = { ...defaultSettings };
 let settingsPath = null;
+let alertState = normalizeAlertState();
+let alertStatePath = null;
 
 function iconPath() {
   return path.join(repoRoot, "Resources", "AppIcon.png");
@@ -62,6 +70,7 @@ async function refreshStatus() {
       maxAttempts: 2,
       retryDelayMs: 1_200,
     });
+    deliverNotifications(latestSnapshot);
   } catch (error) {
     latestSnapshot = {
       schemaVersion: 1,
@@ -130,6 +139,46 @@ function saveSettings() {
   if (!settingsPath) settingsPath = path.join(app.getPath("userData"), "settings.json");
   fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
   fs.writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
+}
+
+function loadAlertState() {
+  alertStatePath = path.join(app.getPath("userData"), "alerts.json");
+  try {
+    const raw = fs.readFileSync(alertStatePath, "utf8");
+    alertState = normalizeAlertState(JSON.parse(raw));
+  } catch {
+    alertState = normalizeAlertState();
+  }
+  return alertState;
+}
+
+function saveAlertState() {
+  if (!alertStatePath) alertStatePath = path.join(app.getPath("userData"), "alerts.json");
+  fs.mkdirSync(path.dirname(alertStatePath), { recursive: true });
+  fs.writeFileSync(alertStatePath, `${JSON.stringify(alertState, null, 2)}\n`, "utf8");
+}
+
+function deliverNotifications(snapshot) {
+  if (!settings.notificationsEnabled || smokeMode || uiSmokeMode) return;
+  if (typeof Notification.isSupported === "function" && !Notification.isSupported()) return;
+
+  const candidates = buildAlertCandidates(snapshot);
+  const alerts = nextUnseenAlerts(candidates, alertState).slice(0, 3);
+  const delivered = [];
+  for (const alert of alerts) {
+    try {
+      new Notification({
+        title: alert.title,
+        body: alert.body,
+      }).show();
+      delivered.push(alert);
+    } catch {
+      break;
+    }
+  }
+  if (delivered.length === 0) return;
+  alertState = rememberDeliveredAlerts(alertState, delivered);
+  saveAlertState();
 }
 
 function updateSettings(patch) {
@@ -228,6 +277,7 @@ async function runUiSmoke() {
           showResetCredits: true,
           showApiEquivalent: true,
           showRecentSessions: true,
+          notificationsEnabled: false,
         },
         snapshot: {
           generatedAt: "2026-07-02T14:36:00Z",
@@ -282,6 +332,7 @@ async function runUiSmoke() {
           showResetCredits: true,
           showApiEquivalent: true,
           showRecentSessions: true,
+          notificationsEnabled: false,
         },
         snapshot: {
           generatedAt: "2026-07-02T14:37:00Z",
@@ -307,7 +358,7 @@ async function runUiSmoke() {
   `, true);
   if (result.title !== "设置") throw new Error(`settings title mismatch: ${result.title}`);
   if (result.selectValue !== "10") throw new Error(`refresh interval did not update: ${result.selectValue}`);
-  if (result.toggleCount < 4) throw new Error(`expected 4 setting toggles, got ${result.toggleCount}`);
+  if (result.toggleCount < 5) throw new Error(`expected 5 setting toggles, got ${result.toggleCount}`);
   if (result.quotaHidden !== true) throw new Error("display toggle did not hide quota section");
   if (!result.homeVisibleAfterToggle || !result.detailHiddenAfterToggle) {
     throw new Error("settings button did not toggle back to home");
@@ -391,6 +442,7 @@ function updateMenu({ loading = false } = {}) {
 app.whenReady().then(async () => {
   app.setAppUserModelId("com.github.codex-runway.windows-tray");
   loadSettings();
+  loadAlertState();
   tray = new Tray(trayIcon());
   if (!smokeMode || uiSmokeMode) {
     createStatusWindow();

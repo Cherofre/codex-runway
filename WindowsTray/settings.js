@@ -6,6 +6,7 @@ const defaultSettings = Object.freeze({
   showResetCredits: true,
   showApiEquivalent: true,
   showRecentSessions: true,
+  notificationsEnabled: false,
 });
 
 function normalizeBoolean(value, fallback) {
@@ -27,6 +28,7 @@ function normalizeSettings(input = {}) {
     showResetCredits: normalizeBoolean(source.showResetCredits, defaultSettings.showResetCredits),
     showApiEquivalent: normalizeBoolean(source.showApiEquivalent, defaultSettings.showApiEquivalent),
     showRecentSessions: normalizeBoolean(source.showRecentSessions, defaultSettings.showRecentSessions),
+    notificationsEnabled: normalizeBoolean(source.notificationsEnabled, defaultSettings.notificationsEnabled),
   };
 }
 

@@ -35,6 +35,7 @@ const defaultSettings = {
   showResetCredits: true,
   showApiEquivalent: true,
   showRecentSessions: true,
+  notificationsEnabled: false,
 };
 
 let latestPayload = null;
@@ -198,6 +199,9 @@ function normalizeSettings(input = {}) {
     showRecentSessions: typeof source.showRecentSessions === "boolean"
       ? source.showRecentSessions
       : defaultSettings.showRecentSessions,
+    notificationsEnabled: typeof source.notificationsEnabled === "boolean"
+      ? source.notificationsEnabled
+      : defaultSettings.notificationsEnabled,
   };
 }
 
@@ -346,7 +350,9 @@ function renderSettingsDetail() {
     settingsGroup("系统", [
       settingRow("关闭按钮", "隐藏面板，托盘仍保持运行", statusPill("已启用")),
       settingRow("开机启动", "需要打包安装后接入", statusPill("未移植"), { disabled: true }),
-      settingRow("通知提醒", "额度提醒和重置提醒", statusPill("未移植"), { disabled: true }),
+      settingRow("通知提醒", "配额阈值和重置临期", toggleControl(settings.notificationsEnabled, (checked) => {
+        applySettingsPatch({ notificationsEnabled: checked });
+      })),
       settingRow("自动更新", "Windows 发布流程待补", statusPill("未移植"), { disabled: true }),
     ]),
     detailNote("设置保存在 Electron userData 目录，不会写入 Codex 会话文件。"));

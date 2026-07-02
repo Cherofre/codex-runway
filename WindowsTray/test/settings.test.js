@@ -22,6 +22,7 @@ test("mergeSettings applies supported values and ignores unknown keys", () => {
     refreshIntervalMinutes: 10,
     showResetCredits: false,
     showApiEquivalent: false,
+    notificationsEnabled: true,
     unknown: "ignored",
   });
 
@@ -30,6 +31,7 @@ test("mergeSettings applies supported values and ignores unknown keys", () => {
     refreshIntervalMinutes: 10,
     showResetCredits: false,
     showApiEquivalent: false,
+    notificationsEnabled: true,
   });
   assert.equal(Object.hasOwn(settings, "unknown"), false);
 });

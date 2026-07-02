@@ -100,3 +100,16 @@ Consequences:
 - The Windows tray becomes less noisy during temporary network failures.
 - Auth/config errors still surface without retry loops.
 - CLI JSON now also emits `code`, `rawMessage`, and `isRetryable`; the tray prefers those fields while keeping text parsing as a fallback for older CLI output.
+
+### Decision: Make Windows Notifications Opt-In And Locally De-Duplicated
+
+Status: active
+
+Context: Quota and reset-credit alerts are useful on Windows, but enabling them by default could spam users with historical quota state on first launch.
+
+Decision: Add a `notificationsEnabled` tray setting that defaults to false, derive notification candidates from CLI JSON snapshots in `WindowsTray/alerts.js`, and store delivered alert IDs in Electron `userData/alerts.json`.
+
+Consequences:
+- Users can enable Windows system notifications from the settings page when they want them.
+- The first implementation avoids repeating the same quota threshold or reset-credit expiry after restart.
+- Packaging work may later need to revisit Windows notification identity and installer metadata.

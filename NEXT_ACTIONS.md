@@ -1,6 +1,6 @@
 ## Now
 
-1. Continue Windows parity work from the current popup panel: notification alerts, update checking, session repair actions, complete detail side panels, and system-level settings such as startup integration are still missing.
+1. Continue Windows parity work from the current popup panel: update checking, session repair actions, complete detail side panels, and system-level settings such as startup integration are still missing.
 2. Decide whether to keep `Scripts\Build-WindowsCLI.ps1` as the Windows development path or continue investigating SwiftPM's `error: fatalError`.
 3. If investigating SwiftPM, start from the reproduced command: `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v`.
 4. Re-test on macOS before merging, because `Package.swift` now gates the AppKit app and dependencies under `#if os(macOS)`.
@@ -8,7 +8,7 @@
 
 ## Handoff Notes
 
-Start here: `WindowsTray\main.js`, `WindowsTray\renderer.js`, `WindowsTray\window.css`, and `WindowsTray\settings.js` for popup/settings behavior; `Scripts\Build-WindowsCLI.ps1` remains the working Windows CLI build path.
+Start here: `WindowsTray\main.js`, `WindowsTray\renderer.js`, `WindowsTray\window.css`, `WindowsTray\settings.js`, and `WindowsTray\alerts.js` for popup/settings/notification behavior; `Scripts\Build-WindowsCLI.ps1` remains the working Windows CLI build path.
 
 Do not redo:
 - Swift 6.3.2 and Visual Studio Build Tools are already installed locally.
@@ -23,6 +23,7 @@ Do not redo:
 - The popup close controls now hide the panel only; full quit is in the tray context menu.
 - Reset credit row details are available through `resetCredits.credits[]` in the CLI JSON.
 - Basic Windows tray settings are implemented and stored under Electron `userData`; unsupported system settings are shown as not-yet-ported status rows.
+- Notification alerts are implemented as an opt-in setting and de-duplicated through Electron `userData/alerts.json`.
 
 Verify next:
 - `npm run preview --prefix WindowsTray` for persistent popup UI behavior.
