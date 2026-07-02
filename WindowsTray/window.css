@@ -448,6 +448,68 @@ h2 {
   white-space: nowrap;
 }
 
+.reset-summary {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.065);
+}
+
+.reset-summary-count {
+  display: grid;
+  align-content: center;
+  min-height: 54px;
+}
+
+.reset-summary-count strong {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.reset-summary-count span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.reset-summary-facts {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid rgba(197, 223, 242, 0.08);
+  border-radius: 7px;
+  background: rgba(8, 20, 31, 0.14);
+}
+
+.summary-fact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+  padding: 4px 7px;
+  border-top: 1px solid rgba(197, 223, 242, 0.08);
+}
+
+.summary-fact:first-child {
+  border-top: 0;
+}
+
+.summary-fact span {
+  color: var(--muted);
+}
+
+.summary-fact strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .detail-table {
   display: grid;
   overflow: hidden;
@@ -484,7 +546,7 @@ h2 {
 
 .reset-credit-list {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .reset-credit-row {
@@ -492,11 +554,11 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  min-height: 48px;
-  padding: 8px 9px;
+  min-height: 36px;
+  padding: 5px 8px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.052);
 }
 
 .reset-credit-main {
@@ -504,41 +566,43 @@ h2 {
 }
 
 .reset-credit-title {
+  font-size: 11px;
   font-weight: 700;
 }
 
 .reset-credit-meta {
-  margin-top: 3px;
+  margin-top: 2px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .reset-credit-side {
-  display: grid;
+  display: flex;
+  align-items: center;
   justify-items: end;
-  gap: 4px;
+  gap: 6px;
   flex: 0 0 auto;
 }
 
 .reset-credit-side small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9.5px;
 }
 
 .risk-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 38px;
-  height: 18px;
-  padding: 0 6px;
+  min-width: 34px;
+  height: 16px;
+  padding: 0 5px;
   border-radius: 999px;
   color: #061828;
   background: #b6c7d7;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
 }
 

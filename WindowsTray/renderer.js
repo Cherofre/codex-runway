@@ -274,19 +274,9 @@ function renderResetDetail(snapshot) {
     return;
   }
   elements.detailContent.append(
-    metricGrid([
-      ["可用", reset.availableCount],
-      ["总数", reset.totalCount],
-      ["下次到期", reset.secondsUntilNextExpiry == null ? "--" : compactDuration(reset.secondsUntilNextExpiry)],
-      ["更新时间", relativeTime(reset.updatedAt)],
-    ]),
-    detailTable([
-      ["下次到期时间", reset.nextExpiresAt ? fullDate(reset.nextExpiresAt) : "--"],
-      ["下次到期剩余", reset.secondsUntilNextExpiry == null ? "--" : compactDuration(reset.secondsUntilNextExpiry)],
-      ["生成时间", snapshot.generatedAt ? fullDate(snapshot.generatedAt) : "--"],
-    ]),
+    resetSummary(reset, snapshot),
     resetCreditList(reset.credits || []),
-    detailNote("下次到期取所有可用 reset credit 中最早过期的一条；无到期时间的 credit 排在最后。"));
+    detailNote("最早到期的可用次数排在最上方。"));
 }
 
 function renderApiDetail(snapshot) {
@@ -403,6 +393,32 @@ function statusPill(text) {
   return pill;
 }
 
+function resetSummary(reset, snapshot) {
+  const summary = document.createElement("section");
+  summary.className = "reset-summary";
+
+  const count = document.createElement("div");
+  count.className = "reset-summary-count";
+  count.append(textNode("strong", String(reset.availableCount)), textNode("span", `/ ${reset.totalCount} 可用`));
+
+  const facts = document.createElement("div");
+  facts.className = "reset-summary-facts";
+  facts.append(
+    summaryFact("下次到期", reset.nextExpiresAt ? fullDate(reset.nextExpiresAt) : "--"),
+    summaryFact("剩余", reset.secondsUntilNextExpiry == null ? "--" : compactDuration(reset.secondsUntilNextExpiry)),
+    summaryFact("更新", reset.updatedAt ? relativeTime(reset.updatedAt) : relativeTime(snapshot.generatedAt)));
+
+  summary.append(count, facts);
+  return summary;
+}
+
+function summaryFact(label, value) {
+  const row = document.createElement("div");
+  row.className = "summary-fact";
+  row.append(textNode("span", label), textNode("strong", value || "--"));
+  return row;
+}
+
 function metricGrid(items) {
   const grid = document.createElement("div");
   grid.className = "metric-grid";
@@ -450,7 +466,7 @@ function resetCreditList(credits) {
     const title = textNode("div", `次数 ${index + 1}`);
     title.className = "reset-credit-title";
     const id = credit.id ? ` · ${shortId(credit.id)}` : "";
-    const expires = credit.expiresAt ? `到期 ${fullDate(credit.expiresAt)}` : "无到期时间";
+    const expires = credit.expiresAt ? fullDate(credit.expiresAt) : "无到期时间";
     const meta = textNode("div", `${expires}${id}`);
     meta.className = "reset-credit-meta";
     main.append(title, meta);

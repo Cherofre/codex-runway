@@ -202,7 +202,7 @@ async function runUiSmoke() {
       await delay(120);
       document.getElementById("settingsButton").click();
       await delay(80);
-      return {
+      const settingsResult = {
         title,
         selectValue: document.querySelector(".select-control").value,
         toggleCount: document.querySelectorAll(".toggle-switch input").length,
@@ -210,6 +210,61 @@ async function runUiSmoke() {
         homeVisibleAfterToggle: !document.getElementById("homeView").hidden,
         detailHiddenAfterToggle: document.getElementById("detailView").hidden,
         settingsButtonText: document.getElementById("settingsButton").textContent,
+      };
+      render({
+        loading: false,
+        settings: {
+          refreshIntervalMinutes: 5,
+          showQuotaMeters: true,
+          showResetCredits: true,
+          showApiEquivalent: true,
+          showRecentSessions: true,
+        },
+        snapshot: {
+          generatedAt: "2026-07-02T14:36:00Z",
+          auth: { isAvailable: true, tokenState: "available", accountId: "acct_1234567890abcdef" },
+          quota: {
+            plan: "plus",
+            primary: { remainingPercent: 92, secondsUntilReset: 3600, resetsAt: "2026-07-02T15:36:00Z" },
+            additional: [],
+          },
+          resetCredits: {
+            availableCount: 4,
+            totalCount: 4,
+            nextExpiresAt: "2026-07-18T00:41:00Z",
+            secondsUntilNextExpiry: 1325100,
+            updatedAt: "2026-07-02T14:32:00Z",
+            credits: [
+              {
+                id: "ratelimit_reset_aaaaaaaa3a87",
+                status: "available",
+                risk: "available",
+                expiresAt: "2026-07-18T00:41:00Z",
+                remainingSeconds: 1325100,
+              },
+              {
+                id: "ratelimit_reset_bbbbbbbb4b91",
+                status: "available",
+                risk: "available",
+                expiresAt: "2026-07-18T00:42:00Z",
+                remainingSeconds: 1325160,
+              },
+            ],
+          },
+          sessions: null,
+          recentSessions: [],
+          apiEquivalent: null,
+          errors: [],
+        },
+      });
+      await delay(80);
+      document.getElementById("resetCard").click();
+      await delay(80);
+      return {
+        ...settingsResult,
+        resetHasSummary: Boolean(document.querySelector("#detailContent .reset-summary")),
+        resetMetricGridCount: document.querySelectorAll("#detailContent .metric-grid").length,
+        resetRowCount: document.querySelectorAll("#detailContent .reset-credit-row").length,
       };
     })();
   `, true);
@@ -223,6 +278,9 @@ async function runUiSmoke() {
   if (!result.settingsButtonText.includes("设置")) {
     throw new Error(`settings button label did not reset: ${result.settingsButtonText}`);
   }
+  if (!result.resetHasSummary) throw new Error("reset detail did not render compact summary");
+  if (result.resetMetricGridCount !== 0) throw new Error("reset detail still renders metric cards");
+  if (result.resetRowCount !== 2) throw new Error(`reset detail row count mismatch: ${result.resetRowCount}`);
   console.log("tray ui smoke ok");
 }
 
