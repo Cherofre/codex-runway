@@ -70,6 +70,18 @@ swift run CodexRunway --self-check
 
 The self-check prints local diagnostics with tokens redacted.
 
+## Experimental Windows Support
+
+Windows currently has an experimental CLI and tray host. It does not include the native macOS AppKit/SwiftUI interface:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Scripts\Build-WindowsCLI.ps1
+npm install --prefix WindowsTray
+$env:CODEX_RUNWAY_CLI = "$PWD\.build\windows-cli\CodexRunwayCLI.exe"
+npm run smoke --prefix WindowsTray
+npm start --prefix WindowsTray
+```
+
 ## Privacy
 
 - Tokens are read only from local `~/.codex/auth.json`.

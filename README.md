@@ -70,6 +70,18 @@ swift run CodexRunway --self-check
 
 自检会输出本地诊断信息，token 会被 redacted。
 
+## Windows 实验支持
+
+Windows 目前提供实验性的 CLI 和托盘壳，不包含原生 macOS AppKit/SwiftUI 界面：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Scripts\Build-WindowsCLI.ps1
+npm install --prefix WindowsTray
+$env:CODEX_RUNWAY_CLI = "$PWD\.build\windows-cli\CodexRunwayCLI.exe"
+npm run smoke --prefix WindowsTray
+npm start --prefix WindowsTray
+```
+
 ## 隐私
 
 - token 只从本机 `~/.codex/auth.json` 读取。
