@@ -74,3 +74,16 @@ Consequences:
 - The popup behaves more like a tray/status app and matches user expectation.
 - The app still has a clear explicit quit path.
 - Future settings pages should avoid ambiguous labels like "退出" unless they really stop the tray process.
+
+### Decision: Persist Windows Tray Settings In Electron userData
+
+Status: active
+
+Context: The Windows tray host needs local preferences before there is a packaged installer or full macOS parity. Settings should not mutate Codex auth/session files.
+
+Decision: Store Windows tray preferences in Electron `userData/settings.json` and expose only settings that currently have real runtime behavior: refresh interval and homepage section visibility.
+
+Consequences:
+- Preferences survive tray restarts without touching `~/.codex`.
+- Renderer settings can be smoke-tested through Electron IPC.
+- System-level features such as startup integration, notifications, and update checks stay visible as not-yet-ported status rows until they are implemented.

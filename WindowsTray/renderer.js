@@ -15,21 +15,35 @@ const elements = {
   openFolderButton: document.getElementById("openFolderButton"),
   planChip: document.getElementById("planChip"),
   quotaList: document.getElementById("quotaList"),
+  quotaSection: document.getElementById("quotaSection"),
   recentSessions: document.getElementById("recentSessions"),
+  recentSection: document.getElementById("recentSection"),
   refreshButton: document.getElementById("refreshButton"),
   resetCard: document.getElementById("resetCard"),
   resetDetail: document.getElementById("resetDetail"),
   resetTitle: document.getElementById("resetTitle"),
   sessionSummary: document.getElementById("sessionSummary"),
   settingsButton: document.getElementById("settingsButton"),
+  summaryCards: document.getElementById("summaryCards"),
   updatedText: document.getElementById("updatedText"),
+};
+
+const allowedRefreshIntervals = [1, 5, 10, 30];
+const defaultSettings = {
+  refreshIntervalMinutes: 5,
+  showQuotaMeters: true,
+  showResetCredits: true,
+  showApiEquivalent: true,
+  showRecentSessions: true,
 };
 
 let latestPayload = null;
 let currentView = "home";
+let settings = { ...defaultSettings };
 
 function render(payload) {
   latestPayload = payload;
+  settings = normalizeSettings(payload?.settings || settings);
   const snapshot = payload?.snapshot || {};
   const quota = snapshot.quota;
   elements.refreshButton.classList.toggle("loading", Boolean(payload?.loading));
@@ -41,8 +55,10 @@ function render(payload) {
   renderApi(snapshot.apiEquivalent);
   renderSessions(snapshot);
   renderErrors(snapshot.errors || []);
+  applySettingsVisibility();
   if (currentView === "reset") renderResetDetail(snapshot);
   if (currentView === "api") renderApiDetail(snapshot);
+  if (currentView === "settings") renderSettingsDetail();
 }
 
 function renderQuota(quota) {
@@ -161,6 +177,49 @@ function renderErrors(errors) {
   elements.errorPanel.textContent = errors.slice(0, 2).map((error) => `${error.area}: ${error.message}`).join(" · ");
 }
 
+function normalizeSettings(input = {}) {
+  const source = input && typeof input === "object" ? input : {};
+  const refreshIntervalMinutes = allowedRefreshIntervals.includes(Number(source.refreshIntervalMinutes))
+    ? Number(source.refreshIntervalMinutes)
+    : defaultSettings.refreshIntervalMinutes;
+  return {
+    refreshIntervalMinutes,
+    showQuotaMeters: typeof source.showQuotaMeters === "boolean"
+      ? source.showQuotaMeters
+      : defaultSettings.showQuotaMeters,
+    showResetCredits: typeof source.showResetCredits === "boolean"
+      ? source.showResetCredits
+      : defaultSettings.showResetCredits,
+    showApiEquivalent: typeof source.showApiEquivalent === "boolean"
+      ? source.showApiEquivalent
+      : defaultSettings.showApiEquivalent,
+    showRecentSessions: typeof source.showRecentSessions === "boolean"
+      ? source.showRecentSessions
+      : defaultSettings.showRecentSessions,
+  };
+}
+
+function applySettingsVisibility() {
+  elements.quotaSection.hidden = !settings.showQuotaMeters;
+  elements.resetCard.hidden = !settings.showResetCredits;
+  elements.apiCard.hidden = !settings.showApiEquivalent;
+  elements.summaryCards.hidden = !settings.showResetCredits && !settings.showApiEquivalent;
+  elements.recentSection.hidden = !settings.showRecentSessions;
+}
+
+async function applySettingsPatch(patch) {
+  settings = normalizeSettings({ ...settings, ...patch });
+  applySettingsVisibility();
+  if (currentView === "settings") renderSettingsDetail();
+  try {
+    settings = normalizeSettings(await window.runway.updateSettings(patch));
+    applySettingsVisibility();
+    if (currentView === "settings") renderSettingsDetail();
+  } catch (error) {
+    renderErrors([{ area: "settings.save", message: error.message }]);
+  }
+}
+
 function showHome() {
   currentView = "home";
   elements.detailView.hidden = true;
@@ -179,6 +238,13 @@ function showApiDetail() {
   elements.homeView.hidden = true;
   elements.detailView.hidden = false;
   renderApiDetail(latestPayload?.snapshot || {});
+}
+
+function showSettings() {
+  currentView = "settings";
+  elements.homeView.hidden = true;
+  elements.detailView.hidden = false;
+  renderSettingsDetail();
 }
 
 function renderResetDetail(snapshot) {
@@ -229,6 +295,95 @@ function renderApiDetail(snapshot) {
       ["计算时间", fullDate(api.calculatedAt)],
     ]),
     detailNote("这里按本机会话 JSONL 统计 API 等价成本，不上传会话内容。"));
+}
+
+function renderSettingsDetail() {
+  elements.detailTitle.textContent = "设置";
+  elements.detailSubtitle.textContent = "Windows 托盘 · 本机保存";
+  elements.detailContent.replaceChildren();
+
+  const refreshSelect = document.createElement("select");
+  refreshSelect.className = "select-control";
+  refreshSelect.setAttribute("aria-label", "刷新间隔");
+  for (const minutes of allowedRefreshIntervals) {
+    const option = document.createElement("option");
+    option.value = String(minutes);
+    option.textContent = `${minutes} 分钟`;
+    option.selected = minutes === settings.refreshIntervalMinutes;
+    refreshSelect.append(option);
+  }
+  refreshSelect.addEventListener("change", () => {
+    applySettingsPatch({ refreshIntervalMinutes: Number(refreshSelect.value) });
+  });
+
+  elements.detailContent.append(
+    settingsGroup("刷新", [
+      settingRow("自动刷新", "托盘后台状态更新频率", refreshSelect),
+    ]),
+    settingsGroup("首页显示", [
+      settingRow("配额进度", "5 小时、每周额度", toggleControl(settings.showQuotaMeters, (checked) => {
+        applySettingsPatch({ showQuotaMeters: checked });
+      })),
+      settingRow("可用重置", "重置次数和单条明细入口", toggleControl(settings.showResetCredits, (checked) => {
+        applySettingsPatch({ showResetCredits: checked });
+      })),
+      settingRow("API 等价成本", "本机会话 token 估算", toggleControl(settings.showApiEquivalent, (checked) => {
+        applySettingsPatch({ showApiEquivalent: checked });
+      })),
+      settingRow("最近会话", "索引到的本地 Codex 会话", toggleControl(settings.showRecentSessions, (checked) => {
+        applySettingsPatch({ showRecentSessions: checked });
+      })),
+    ]),
+    settingsGroup("系统", [
+      settingRow("关闭按钮", "隐藏面板，托盘仍保持运行", statusPill("已启用")),
+      settingRow("开机启动", "需要打包安装后接入", statusPill("未移植"), { disabled: true }),
+      settingRow("通知提醒", "额度提醒和重置提醒", statusPill("未移植"), { disabled: true }),
+      settingRow("自动更新", "Windows 发布流程待补", statusPill("未移植"), { disabled: true }),
+    ]),
+    detailNote("设置保存在 Electron userData 目录，不会写入 Codex 会话文件。"));
+}
+
+function settingsGroup(title, rows) {
+  const group = document.createElement("section");
+  group.className = "settings-group";
+  const heading = textNode("div", title);
+  heading.className = "settings-heading";
+  group.append(heading, ...rows);
+  return group;
+}
+
+function settingRow(title, subtitle, control, options = {}) {
+  const row = document.createElement("div");
+  row.className = "setting-row";
+  if (options.disabled) row.classList.add("is-disabled");
+
+  const copy = document.createElement("div");
+  copy.className = "setting-copy";
+  const titleNode = textNode("strong", title);
+  const subtitleNode = textNode("small", subtitle);
+  copy.append(titleNode, subtitleNode);
+
+  row.append(copy, control);
+  return row;
+}
+
+function toggleControl(checked, onChange) {
+  const label = document.createElement("label");
+  label.className = "toggle-switch";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.checked = checked;
+  input.addEventListener("change", () => onChange(input.checked));
+  const slider = document.createElement("span");
+  slider.className = "toggle-slider";
+  label.append(input, slider);
+  return label;
+}
+
+function statusPill(text) {
+  const pill = textNode("span", text);
+  pill.className = "status-pill";
+  return pill;
 }
 
 function metricGrid(items) {
@@ -404,9 +559,7 @@ elements.refreshButton.addEventListener("click", () => {
 elements.openFolderButton.addEventListener("click", () => window.runway.openCodexFolder());
 elements.closeButton.addEventListener("click", () => window.runway.closePanel());
 elements.closePanelButton.addEventListener("click", () => window.runway.closePanel());
-elements.settingsButton.addEventListener("click", () => {
-  renderErrors([{ area: "settings", message: "Windows 设置面板还在移植中" }]);
-});
+elements.settingsButton.addEventListener("click", showSettings);
 elements.backButton.addEventListener("click", showHome);
 elements.resetCard.addEventListener("click", showResetDetail);
 elements.apiCard.addEventListener("click", showApiDetail);

@@ -14,6 +14,7 @@ function buildCliInvocation({
   const executableName = process.platform === "win32" ? "CodexRunwayCLI.exe" : "CodexRunwayCLI";
   const candidates = [
     resourcesPath ? path.join(resourcesPath, executableName) : null,
+    path.join(repoRoot, ".build", "windows-cli", executableName),
     path.join(repoRoot, ".build", "release", executableName),
     path.join(repoRoot, ".build", "debug", executableName),
   ].filter(Boolean);

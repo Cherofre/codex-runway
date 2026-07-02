@@ -3,6 +3,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("runway", {
   getStatus: () => ipcRenderer.invoke("status:get"),
   refresh: () => ipcRenderer.invoke("status:refresh"),
+  getSettings: () => ipcRenderer.invoke("settings:get"),
+  updateSettings: (patch) => ipcRenderer.invoke("settings:update", patch),
   openCodexFolder: () => ipcRenderer.invoke("app:openCodexFolder"),
   closePanel: () => ipcRenderer.invoke("app:closePanel"),
   onStatusUpdated: (callback) => {

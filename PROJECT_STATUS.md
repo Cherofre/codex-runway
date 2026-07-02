@@ -4,7 +4,7 @@ Last Updated: 2026-07-02
 
 Goal: Port Codex Runway toward Windows in two stages: first a cross-platform CLI, then a Windows tray host that consumes the CLI.
 
-Phase: Stage 2 implemented, user-inspected, and staged for commits; SwiftPM on Windows remains blocked by a toolchain-level `fatalError`.
+Phase: Stage 2 implemented with a usable Windows tray popup and basic settings panel; SwiftPM on Windows remains blocked by a toolchain-level `fatalError`.
 
 Superpowers Phase: Verification / handoff.
 
@@ -20,6 +20,9 @@ Progress:
 - Added a tray popup panel with quota meters, reset credit detail, API-equivalent detail, recent sessions, refresh, open-folder, and close-panel interactions.
 - `resetCredits.credits[]` is now exposed in CLI JSON and the Windows detail view lists individual reset credits. Next expiry uses the earliest available credit with an expiry date.
 - Window-level close controls now hide the panel only; full app quit remains in the tray context menu.
+- Added Windows tray settings with local Electron userData persistence, refresh interval control, and homepage visibility toggles for quota, reset credits, API equivalent, and recent sessions.
+- Added a UI smoke test mode that opens the Electron renderer, enters settings, changes refresh interval, toggles a homepage section, and verifies the DOM state.
+- WindowsTray CLI resolution now prefers the manual `.build/windows-cli/CodexRunwayCLI.exe` before falling back to SwiftPM.
 
 Verification Evidence:
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` failed with `error: fatalError` after printing the `CodexRunwayCore` `swiftc` command and no Swift source diagnostics.
@@ -36,12 +39,16 @@ Verification Evidence:
 - `npm run check --prefix WindowsTray` passed after the popup panel updates.
 - `npm test --prefix WindowsTray` passed after the popup panel updates: 5 tests, 0 failures.
 - The user manually inspected the persistent tray panel and reported UI issues that were fixed: clipped footer, rotating refresh button background, missing reset credit detail rows, and confusing quit/close semantics.
+- `npm run check --prefix WindowsTray` passed after settings updates.
+- `npm test --prefix WindowsTray` passed after settings updates: 8 tests, 0 failures.
+- `npm run ui-smoke --prefix WindowsTray` passed with `tray ui smoke ok`; Electron also printed non-fatal GPU IPC noise.
+- `npm run smoke --prefix WindowsTray` passed after adding `.build/windows-cli` CLI discovery.
 
 Known Blockers:
 - Native SwiftPM build/test on this Windows Swift 6.3.2 toolchain fails with `error: fatalError`; direct `swiftc` compilation works. Do not claim `swift test` passes on Windows.
 - The Windows tray runtime has been smoke-tested and manually inspected, but it is still an experimental Electron host rather than a packaged Windows release.
 - The Windows CLI executable currently depends on the installed Swift runtime being present; tray startup prepends common Swift runtime paths for development.
-- Several macOS app features are not yet ported: settings implementation, notification alerts, update checking, session repair actions, complete side panels, packaged installer/startup integration, app signing, and full Windows UI parity.
+- Several macOS app features are not yet ported: notification alerts, update checking, session repair actions, complete side panels, packaged installer/startup integration, app signing, and full Windows UI parity. Basic Windows tray settings now exist, but system-level settings such as startup integration are still placeholders.
 
 ## History
 
@@ -50,3 +57,4 @@ Known Blockers:
 - 2026-07-01: Added CLI JSON status snapshots and an Electron Windows tray scaffold.
 - 2026-07-02: Installed Swift 6.3.2, verified SwiftPM failure, added manual Windows CLI build script, installed Electron dependencies, and smoke-tested the tray against the built CLI.
 - 2026-07-02: Iterated on Windows popup UI after user inspection, added reset credit row details, and changed window controls to hide instead of quitting the tray process.
+- 2026-07-02: Added Windows tray settings persistence/UI, renderer UI smoke coverage, and default discovery of the manual Windows CLI executable.

@@ -34,6 +34,19 @@ test("buildCliInvocation prefers built release executable", () => {
   assert.deepEqual(invocation.args, ["--json"]);
 });
 
+test("buildCliInvocation prefers manual Windows CLI executable", () => {
+  const cliPath = path.join("C:\\repo", ".build", "windows-cli", "CodexRunwayCLI.exe");
+  const invocation = buildCliInvocation({
+    env: {},
+    repoRoot: "C:\\repo",
+    resourcesPath: "C:\\app\\resources",
+    fileExists: (candidate) => candidate === cliPath,
+  });
+
+  assert.equal(invocation.command, cliPath);
+  assert.deepEqual(invocation.args, ["--json"]);
+});
+
 test("buildCliEnvironment prepends Swift runtime paths on Windows", () => {
   const swiftRoot = "C:\\Users\\Me\\AppData\\Local\\Programs\\Swift";
   const toolchains = path.join(swiftRoot, "Toolchains");
