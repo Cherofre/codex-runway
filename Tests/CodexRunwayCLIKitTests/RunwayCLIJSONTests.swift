@@ -22,6 +22,30 @@ import CodexRunwayCore
     #expect((object["errors"] as? [[String: Any]])?.first?["area"] as? String == "auth")
 }
 
+@Test func statusErrorsExposeStructuredNetworkFailureFields() throws {
+    let error = RunwayCLIStatusError(area: "quota", error: URLError(.timedOut))
+    let snapshot = RunwayCLIStatusSnapshot(
+        generatedAt: Date(timeIntervalSince1970: 0),
+        auth: RunwayCLIAuthSnapshot(isAvailable: true, tokenState: "valid", accountId: "acct"),
+        quota: nil,
+        resetCredits: nil,
+        sessions: nil,
+        recentSessions: [],
+        apiEquivalent: nil,
+        errors: [error])
+
+    let data = try snapshot.encodedJSONData()
+    let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let errors = try #require(object["errors"] as? [[String: Any]])
+    let encoded = try #require(errors.first)
+
+    #expect(encoded["area"] as? String == "quota")
+    #expect(encoded["code"] as? String == "timeout")
+    #expect(encoded["message"] as? String == "请求超时，请稍后刷新")
+    #expect(encoded["rawMessage"] as? String == URLError(.timedOut).localizedDescription)
+    #expect(encoded["isRetryable"] as? Bool == true)
+}
+
 @Test func resetCreditsExposeSortedCreditDetails() throws {
     let snapshot = ResetCreditsSnapshot(
         availableCount: 2,

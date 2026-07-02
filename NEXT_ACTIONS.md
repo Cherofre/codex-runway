@@ -15,6 +15,7 @@ Do not redo:
 - `Package.swift` already separates macOS app target from cross-platform CLI targets.
 - `QuotaClient` and `TokenRefresher` already conditionally import `FoundationNetworking`.
 - `AuthStore` and `SessionRepairService` already avoid Apple-only replacement/write APIs outside Apple platforms.
+- `CodexRunwayCLI --json` errors now preserve `area/message` and add `code/rawMessage/isRetryable`; new frontends should prefer `code` and `isRetryable`.
 - `WindowsTray/status.js` already resolves the CLI, prepends common Swift runtime paths for child processes, and formats known network errors into user-facing text.
 - `WindowsTray/status.js` now prefers `.build\windows-cli\CodexRunwayCLI.exe`, the manual Windows build output, before falling back to SwiftPM.
 - `WindowsTray/refresh.js` retries one transient CLI status snapshot when quota/reset/API errors indicate timeout or connection loss.

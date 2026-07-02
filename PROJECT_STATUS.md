@@ -24,6 +24,7 @@ Progress:
 - Added a UI smoke test mode that opens the Electron renderer, enters settings, changes refresh interval, toggles a homepage section, and verifies the DOM state.
 - WindowsTray CLI resolution now prefers the manual `.build/windows-cli/CodexRunwayCLI.exe` before falling back to SwiftPM.
 - WindowsTray now formats raw network failures such as `NSURLErrorDomain error -1001` into Chinese user-facing messages and retries one transient CLI status snapshot failure before showing the error.
+- `CodexRunwayCLI --json` errors now include structured `code`, `rawMessage`, and `isRetryable` fields while preserving `area` and user-facing `message`.
 
 Verification Evidence:
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` failed with `error: fatalError` after printing the `CodexRunwayCore` `swiftc` command and no Swift source diagnostics.
@@ -48,6 +49,12 @@ Verification Evidence:
 - `npm test --prefix WindowsTray` passed after network error handling updates: 14 tests, 0 failures.
 - `npm run ui-smoke --prefix WindowsTray` passed after network error handling updates and asserts raw `NSURLErrorDomain` text does not leak into the renderer.
 - `npm run smoke --prefix WindowsTray` passed after network error handling updates.
+- `powershell -ExecutionPolicy Bypass -File Scripts\Build-WindowsCLI.ps1` passed after adding structured CLI error fields.
+- A temporary Swift runtime check encoded `RunwayCLIStatusError(area: "quota", error: URLError(.timedOut))` as `code: "timeout"`, `isRetryable: true`, friendly `message`, and original `rawMessage`.
+- `npm run check --prefix WindowsTray` passed after structured CLI error compatibility updates.
+- `npm test --prefix WindowsTray` passed after structured CLI error compatibility updates: 15 tests, 0 failures.
+- `npm run ui-smoke --prefix WindowsTray` passed after structured CLI error compatibility updates.
+- `npm run smoke --prefix WindowsTray` passed after structured CLI error compatibility updates.
 
 Known Blockers:
 - Native SwiftPM build/test on this Windows Swift 6.3.2 toolchain fails with `error: fatalError`; direct `swiftc` compilation works. Do not claim `swift test` passes on Windows.
@@ -64,3 +71,4 @@ Known Blockers:
 - 2026-07-02: Iterated on Windows popup UI after user inspection, added reset credit row details, and changed window controls to hide instead of quitting the tray process.
 - 2026-07-02: Added Windows tray settings persistence/UI, renderer UI smoke coverage, and default discovery of the manual Windows CLI executable.
 - 2026-07-02: Added transient Windows tray refresh retry and friendly timeout/network error formatting.
+- 2026-07-02: Added structured CLI JSON error fields and updated the tray to prefer them.

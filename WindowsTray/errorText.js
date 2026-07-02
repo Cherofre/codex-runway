@@ -47,7 +47,14 @@
       text.includes("eai_again");
   }
 
-  function friendlyErrorMessage(message) {
+  function friendlyErrorMessage(message, code) {
+    if (code === "timeout") return "请求超时，请稍后刷新";
+    if (code === "network_lost") return "网络连接中断，请稍后刷新";
+    if (code === "offline") return "网络连接不可用，请检查后刷新";
+    if (code === "network_error") return "网络请求失败，请稍后刷新";
+    if (code === "bad_response") return "服务返回异常，请稍后刷新";
+    if (code === "auth_required") return "需要重新登录 Codex";
+
     const text = normalizedText(message);
     if (!text) return "未知错误";
     if (isTimeoutMessage(text)) return "请求超时，请稍后刷新";
@@ -62,11 +69,13 @@
   }
 
   function formatErrorLine(error) {
-    return `${areaLabel(error && error.area)}：${friendlyErrorMessage(error && error.message)}`;
+    return `${areaLabel(error && error.area)}：${friendlyErrorMessage(error && error.message, error && error.code)}`;
   }
 
   function isRetryableError(error) {
     if (!error) return false;
+    if (typeof error.isRetryable === "boolean") return error.isRetryable;
+    if (error.code === "timeout" || error.code === "network_lost") return true;
     const area = error.area || "";
     if (area === "auth" || area === "auth.refresh") return false;
     return isTimeoutMessage(error.message) || isNetworkLossMessage(error.message);

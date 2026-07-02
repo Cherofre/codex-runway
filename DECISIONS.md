@@ -99,4 +99,4 @@ Decision: Keep the CLI JSON boundary intact and handle transient retry plus frie
 Consequences:
 - The Windows tray becomes less noisy during temporary network failures.
 - Auth/config errors still surface without retry loops.
-- Future CLI-level error codes could replace string matching, but the current tray behavior is covered by Node tests and UI smoke.
+- CLI JSON now also emits `code`, `rawMessage`, and `isRetryable`; the tray prefers those fields while keeping text parsing as a fallback for older CLI output.
