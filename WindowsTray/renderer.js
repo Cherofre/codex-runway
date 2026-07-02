@@ -174,7 +174,9 @@ function renderErrors(errors) {
     return;
   }
   elements.errorPanel.hidden = false;
-  elements.errorPanel.textContent = errors.slice(0, 2).map((error) => `${error.area}: ${error.message}`).join(" · ");
+  const formatErrorLine = window.runwayErrors?.formatErrorLine ||
+    ((error) => `${error.area}: ${error.message}`);
+  elements.errorPanel.textContent = errors.slice(0, 2).map(formatErrorLine).join(" · ");
 }
 
 function normalizeSettings(input = {}) {

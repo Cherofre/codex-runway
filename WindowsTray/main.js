@@ -5,6 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { promisify } = require("node:util");
 
+const { fetchSnapshotWithRetry } = require("./refresh");
 const {
   buildCliEnvironment,
   buildCliInvocation,
@@ -38,21 +39,29 @@ function trayIcon() {
   return image.isEmpty() ? nativeImage.createEmpty() : image.resize({ width: 16, height: 16 });
 }
 
+async function readCliStatusSnapshot() {
+  const invocation = buildCliInvocation({ repoRoot });
+  const { stdout } = await execFileAsync(invocation.command, invocation.args, {
+    cwd: invocation.cwd,
+    env: buildCliEnvironment(),
+    timeout: 180_000,
+    windowsHide: true,
+    maxBuffer: 1024 * 1024,
+  });
+  return JSON.parse(stdout);
+}
+
 async function refreshStatus() {
   if (isRefreshing) return currentPayload({ loading: true });
   isRefreshing = true;
   updateMenu({ loading: true });
   broadcastStatus({ loading: true });
   try {
-    const invocation = buildCliInvocation({ repoRoot });
-    const { stdout } = await execFileAsync(invocation.command, invocation.args, {
-      cwd: invocation.cwd,
-      env: buildCliEnvironment(),
-      timeout: 180_000,
-      windowsHide: true,
-      maxBuffer: 1024 * 1024,
+    latestSnapshot = await fetchSnapshotWithRetry({
+      runOnce: readCliStatusSnapshot,
+      maxAttempts: 2,
+      retryDelayMs: 1_200,
     });
-    latestSnapshot = JSON.parse(stdout);
   } catch (error) {
     latestSnapshot = {
       schemaVersion: 1,
@@ -260,11 +269,39 @@ async function runUiSmoke() {
       await delay(80);
       document.getElementById("resetCard").click();
       await delay(80);
-      return {
-        ...settingsResult,
+      const resetResult = {
         resetHasSummary: Boolean(document.querySelector("#detailContent .reset-summary")),
         resetMetricGridCount: document.querySelectorAll("#detailContent .metric-grid").length,
         resetRowCount: document.querySelectorAll("#detailContent .reset-credit-row").length,
+      };
+      render({
+        loading: false,
+        settings: {
+          refreshIntervalMinutes: 5,
+          showQuotaMeters: true,
+          showResetCredits: true,
+          showApiEquivalent: true,
+          showRecentSessions: true,
+        },
+        snapshot: {
+          generatedAt: "2026-07-02T14:37:00Z",
+          auth: { isAvailable: true, tokenState: "available", accountId: "acct_1234567890abcdef" },
+          quota: null,
+          resetCredits: null,
+          sessions: null,
+          recentSessions: [],
+          apiEquivalent: null,
+          errors: [{
+            area: "quota",
+            message: "The operation could not be completed. (NSURLErrorDomain error -1001.)",
+          }],
+        },
+      });
+      await delay(80);
+      return {
+        ...settingsResult,
+        ...resetResult,
+        errorPanelText: document.getElementById("errorPanel").textContent,
       };
     })();
   `, true);
@@ -281,6 +318,12 @@ async function runUiSmoke() {
   if (!result.resetHasSummary) throw new Error("reset detail did not render compact summary");
   if (result.resetMetricGridCount !== 0) throw new Error("reset detail still renders metric cards");
   if (result.resetRowCount !== 2) throw new Error(`reset detail row count mismatch: ${result.resetRowCount}`);
+  if (!result.errorPanelText.includes("配额：请求超时，请稍后刷新")) {
+    throw new Error(`timeout error text is not friendly: ${result.errorPanelText}`);
+  }
+  if (result.errorPanelText.includes("NSURLErrorDomain")) {
+    throw new Error("timeout error leaked raw NSError text");
+  }
   console.log("tray ui smoke ok");
 }
 

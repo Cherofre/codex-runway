@@ -1,5 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const { formatErrorLine, friendlyErrorMessage } = require("./errorText");
 
 function buildCliInvocation({
   env = process.env,
@@ -83,7 +84,7 @@ function formatTooltip(snapshot) {
   const primary = snapshot && snapshot.quota && snapshot.quota.primary;
   if (!primary) {
     const firstError = snapshot && Array.isArray(snapshot.errors) && snapshot.errors[0];
-    return firstError ? `Codex Runway: ${firstError.area} unavailable` : "Codex Runway";
+    return firstError ? `Codex Runway: ${friendlyErrorMessage(firstError.message)}` : "Codex Runway";
   }
   const resetText = primary.secondsUntilReset == null ? "" : `, resets in ${compactDuration(primary.secondsUntilReset)}`;
   return `Codex Runway: ${primary.remainingPercent}% left${resetText}`;
@@ -119,7 +120,7 @@ function formatStatusLines(snapshot) {
   }
 
   for (const error of (snapshot && snapshot.errors) || []) {
-    lines.push(`${error.area}: ${error.message}`);
+    lines.push(formatErrorLine(error));
   }
 
   return lines;

@@ -87,3 +87,16 @@ Consequences:
 - Preferences survive tray restarts without touching `~/.codex`.
 - Renderer settings can be smoke-tested through Electron IPC.
 - System-level features such as startup integration, notifications, and update checks stay visible as not-yet-ported status rows until they are implemented.
+
+### Decision: Handle Transient Network Errors In The Tray Host
+
+Status: active
+
+Context: The CLI may return partial JSON snapshots when remote quota endpoints time out, for example `NSURLErrorDomain error -1001`. Showing raw NSError text in the tray panel is confusing, and a single timeout often succeeds on a quick retry.
+
+Decision: Keep the CLI JSON boundary intact and handle transient retry plus friendly text in the Windows tray host. Retry one snapshot when quota/reset/API errors indicate timeout or connection loss; format known network errors before rendering menus or the popup error panel.
+
+Consequences:
+- The Windows tray becomes less noisy during temporary network failures.
+- Auth/config errors still surface without retry loops.
+- Future CLI-level error codes could replace string matching, but the current tray behavior is covered by Node tests and UI smoke.

@@ -101,6 +101,21 @@ test("formatStatusLines includes errors without throwing", () => {
   assert.deepEqual(lines, [
     "Quota unavailable",
     "Sessions: 3 indexed, 1 missing, 0 orphan",
-    "quota: offline",
+    "配额：offline",
+  ]);
+});
+
+test("formatStatusLines hides raw timeout errors", () => {
+  const lines = formatStatusLines({
+    quota: null,
+    errors: [{
+      area: "quota",
+      message: "The operation could not be completed. (NSURLErrorDomain error -1001.)",
+    }],
+  });
+
+  assert.deepEqual(lines, [
+    "Quota unavailable",
+    "配额：请求超时，请稍后刷新",
   ]);
 });

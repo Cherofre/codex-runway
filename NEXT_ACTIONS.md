@@ -15,8 +15,9 @@ Do not redo:
 - `Package.swift` already separates macOS app target from cross-platform CLI targets.
 - `QuotaClient` and `TokenRefresher` already conditionally import `FoundationNetworking`.
 - `AuthStore` and `SessionRepairService` already avoid Apple-only replacement/write APIs outside Apple platforms.
-- `WindowsTray/status.js` already resolves the CLI and prepends common Swift runtime paths for child processes.
+- `WindowsTray/status.js` already resolves the CLI, prepends common Swift runtime paths for child processes, and formats known network errors into user-facing text.
 - `WindowsTray/status.js` now prefers `.build\windows-cli\CodexRunwayCLI.exe`, the manual Windows build output, before falling back to SwiftPM.
+- `WindowsTray/refresh.js` retries one transient CLI status snapshot when quota/reset/API errors indicate timeout or connection loss.
 - `npm install --prefix WindowsTray` has already been run; `WindowsTray/package-lock.json` exists.
 - The popup close controls now hide the panel only; full quit is in the tray context menu.
 - Reset credit row details are available through `resetCredits.credits[]` in the CLI JSON.
@@ -24,7 +25,7 @@ Do not redo:
 
 Verify next:
 - `npm run preview --prefix WindowsTray` for persistent popup UI behavior.
-- `npm run ui-smoke --prefix WindowsTray` for renderer settings smoke coverage.
+- `npm run ui-smoke --prefix WindowsTray` for renderer settings, reset detail, and friendly error smoke coverage.
 - `swift test` on macOS for regression coverage.
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` only if checking whether the Windows SwiftPM blocker has changed.
 
