@@ -92,7 +92,7 @@ public struct UsageCostScanner: Sendable {
         byModel: inout [String: TokenUsage],
         unknown: inout Set<String>) throws
     {
-        let text = try String(contentsOf: file)
+        let text = try String(contentsOf: file, encoding: .utf8)
         var currentModel = "unknown-model"
         for line in text.split(separator: "\n") {
             guard let record = try? JSONLineRecord.parse(String(line)),
@@ -117,7 +117,7 @@ public struct UsageCostScanner: Sendable {
         byDayModel: inout [String: [String: ApiEquivalentTotals]],
         unknown: inout Set<String>) throws
     {
-        let text = try String(contentsOf: file)
+        let text = try String(contentsOf: file, encoding: .utf8)
         var currentModel = "unknown-model"
         var currentProject = SessionProjectName.unknown
         for line in text.split(separator: "\n") {

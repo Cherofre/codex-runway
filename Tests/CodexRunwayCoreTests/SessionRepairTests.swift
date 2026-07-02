@@ -39,7 +39,7 @@ struct SessionRepairTests {
             .write(to: root.url.appending(path: "session_index.jsonl"), atomically: true, encoding: .utf8)
 
         let result = try SessionRepairService(codexHome: root.url).repair()
-        let repaired = try String(contentsOf: root.url.appending(path: "session_index.jsonl"))
+        let repaired = try String(contentsOf: root.url.appending(path: "session_index.jsonl"), encoding: .utf8)
 
         #expect(FileManager.default.fileExists(atPath: result.backupPath!.path))
         #expect(repaired.contains(#""id":"s1""#))

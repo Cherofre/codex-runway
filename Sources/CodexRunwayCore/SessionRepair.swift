@@ -97,7 +97,7 @@ public struct SessionRepairService: Sendable {
     private func readIndex() throws -> [SessionIndexEntry] {
         let url = indexURL
         guard FileManager.default.fileExists(atPath: url.path) else { return [] }
-        return try String(contentsOf: url).split(separator: "\n").compactMap { line in
+        return try String(contentsOf: url, encoding: .utf8).split(separator: "\n").compactMap { line in
             try? JSONDecoder().decode(SessionIndexEntry.self, from: Data(line.utf8))
         }
     }
@@ -116,7 +116,11 @@ public struct SessionRepairService: Sendable {
         let temporary = codexHome.appendingPathComponent(".session_index.jsonl.tmp-\(UUID().uuidString)")
         try lines.write(to: temporary, atomically: true, encoding: .utf8)
         if FileManager.default.fileExists(atPath: indexURL.path) {
+            #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
             _ = try FileManager.default.replaceItemAt(indexURL, withItemAt: temporary)
+            #else
+            try FileManager.default.replaceExistingItem(at: indexURL, with: temporary)
+            #endif
         } else {
             try FileManager.default.moveItem(at: temporary, to: indexURL)
         }
@@ -170,4 +174,13 @@ private func cleanTitle(_ text: String) -> String? {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return nil }
     return String(trimmed.prefix(80))
+}
+
+private extension FileManager {
+    func replaceExistingItem(at destination: URL, with temporary: URL) throws {
+        if fileExists(atPath: destination.path) {
+            try removeItem(at: destination)
+        }
+        try moveItem(at: temporary, to: destination)
+    }
 }

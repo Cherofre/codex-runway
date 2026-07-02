@@ -17,7 +17,24 @@ public struct CodexAuthStore: Sendable {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(auth)
         let temporary = authURL.deletingLastPathComponent().appendingPathComponent(".auth.json.tmp-\(UUID().uuidString)")
+        #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
         try data.write(to: temporary, options: .completeFileProtectionUnlessOpen)
+        #else
+        try data.write(to: temporary, options: .atomic)
+        #endif
+        #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
         _ = try FileManager.default.replaceItemAt(authURL, withItemAt: temporary)
+        #else
+        try FileManager.default.replaceExistingItem(at: authURL, with: temporary)
+        #endif
+    }
+}
+
+private extension FileManager {
+    func replaceExistingItem(at destination: URL, with temporary: URL) throws {
+        if fileExists(atPath: destination.path) {
+            try removeItem(at: destination)
+        }
+        try moveItem(at: temporary, to: destination)
     }
 }

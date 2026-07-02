@@ -89,7 +89,7 @@ public struct SessionActivityScanner: Sendable {
         updatedAt providedUpdatedAt: Date? = nil)
         throws -> SessionActivityItem?
     {
-        let text = try String(contentsOf: file)
+        let text = try String(contentsOf: file, encoding: .utf8)
         var id: String?
         var cwd: String?
         var title = providedTitle.flatMap(cleanSessionTitle)
@@ -143,7 +143,7 @@ public struct SessionActivityScanner: Sendable {
     private func readIndex() throws -> [SessionIndexEntry] {
         let url = codexHome.appendingPathComponent("session_index.jsonl")
         guard FileManager.default.fileExists(atPath: url.path) else { return [] }
-        return try String(contentsOf: url).split(separator: "\n").compactMap { line in
+        return try String(contentsOf: url, encoding: .utf8).split(separator: "\n").compactMap { line in
             try? JSONDecoder().decode(SessionIndexEntry.self, from: Data(line.utf8))
         }
     }

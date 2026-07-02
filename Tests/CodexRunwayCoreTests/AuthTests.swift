@@ -89,6 +89,25 @@ struct AuthTests {
         #expect(auth.tokens.accessToken == "new-access")
     }
 
+    @Test("saves auth by replacing existing file")
+    func savesAuthByReplacingExistingFile() throws {
+        let root = try TemporaryDirectory()
+        let authURL = root.url.appending(path: "auth.json")
+        try #"{"tokens":{"access_token":"old","refresh_token":"old","account_id":"old"}}"#
+            .write(to: authURL, atomically: true, encoding: .utf8)
+
+        let store = CodexAuthStore(authURL: authURL)
+        try store.save(CodexAuth(
+            authMode: "chatgpt",
+            tokens: .init(accessToken: "new-access", refreshToken: "new-refresh", accountId: "new-account"),
+            lastRefresh: "2026-06-29T00:00:00Z"))
+
+        let saved = try store.load()
+        #expect(saved.tokens.accessToken == "new-access")
+        #expect(saved.tokens.refreshToken == "new-refresh")
+        #expect(saved.tokens.accountId == "new-account")
+    }
+
     @Test("extracts Codex identity claims from JWT payloads")
     func extractsIdentityClaims() throws {
         let token = Self.jwt(payload: [
@@ -220,5 +239,15 @@ private extension String {
         self.replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")
+    }
+}
+
+private struct TemporaryDirectory {
+    let url: URL
+
+    init() throws {
+        self.url = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     }
 }

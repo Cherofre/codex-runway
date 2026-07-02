@@ -50,7 +50,7 @@ struct StatusExportTests {
             sessions: sessions)
 
         try RunwayStatusExporter(statusURL: url).save(snapshot)
-        let text = try String(contentsOf: url)
+        let text = try String(contentsOf: url, encoding: .utf8)
 
         #expect(text.contains("codex-runway"))
         #expect(text.contains("projectRows"))
