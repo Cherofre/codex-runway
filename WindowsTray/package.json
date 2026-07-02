@@ -1,0 +1,17 @@
+{
+  "name": "codex-runway-windows-tray",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Windows tray host for Codex Runway CLI JSON status.",
+  "main": "main.js",
+  "scripts": {
+    "check": "node --check main.js && node --check preload.js && node --check renderer.js && node --check status.js",
+    "preview": "electron . --show",
+    "start": "electron .",
+    "smoke": "electron . --smoke",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "electron": "43.0.0"
+  }
+}

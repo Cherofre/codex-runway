@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Codex Runway</title>
+    <link rel="stylesheet" href="./window.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="titlebar">
+        <div>
+          <h1>Codex Runway</h1>
+          <div class="account-row">
+            <span id="planChip" class="plan-chip">--</span>
+            <span id="accountText" class="account">正在读取本机 Codex</span>
+          </div>
+        </div>
+        <div class="window-actions">
+          <button id="openFolderButton" class="icon-button" type="button" title="打开 Codex 文件夹"><span class="button-glyph">⌂</span></button>
+          <button id="refreshButton" class="icon-button" type="button" title="刷新"><span class="button-glyph">↻</span></button>
+          <button id="closeButton" class="icon-button" type="button" title="关闭窗口"><span class="button-glyph">×</span></button>
+        </div>
+      </header>
+
+      <div id="homeView" class="view view-home">
+        <section class="section">
+          <div class="section-heading">
+            <span>◎ 配额</span>
+            <span id="updatedText" class="muted">--</span>
+          </div>
+          <div id="quotaList" class="quota-list"></div>
+        </section>
+
+        <section class="section two-column">
+          <button id="resetCard" class="mini-card row-card" type="button">
+            <span>
+              <strong id="resetTitle">0 可用重置</strong>
+              <small id="resetDetail">重置次数读取中</small>
+            </span>
+            <span class="chevron">›</span>
+          </button>
+          <button id="apiCard" class="mini-card row-card" type="button">
+            <span>
+              <strong id="apiTitle">$--</strong>
+              <small id="apiDetail">API 等价成本</small>
+            </span>
+            <span class="chevron">›</span>
+          </button>
+        </section>
+
+        <section class="section">
+          <div class="section-heading">
+            <span>▤ 最近会话</span>
+            <span id="sessionSummary" class="muted">--</span>
+          </div>
+          <div id="recentSessions" class="session-list"></div>
+        </section>
+      </div>
+
+      <div id="detailView" class="view view-detail" hidden>
+        <section class="detail-header">
+          <button id="backButton" class="back-button" type="button">‹ 返回</button>
+          <div>
+            <h2 id="detailTitle">详情</h2>
+            <p id="detailSubtitle">Codex Runway</p>
+          </div>
+        </section>
+        <section id="detailContent" class="detail-content"></section>
+      </div>
+
+      <section id="errorPanel" class="error-panel" hidden></section>
+
+      <footer class="footer">
+        <button id="settingsButton" class="footer-button" type="button">☷ 设置</button>
+        <button id="closePanelButton" class="footer-button" type="button">× 关闭</button>
+      </footer>
+    </main>
+    <script src="./renderer.js"></script>
+  </body>
+</html>
