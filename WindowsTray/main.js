@@ -200,11 +200,16 @@ async function runUiSmoke() {
       const firstToggle = document.querySelector(".toggle-switch input");
       firstToggle.click();
       await delay(120);
+      document.getElementById("settingsButton").click();
+      await delay(80);
       return {
         title,
         selectValue: document.querySelector(".select-control").value,
         toggleCount: document.querySelectorAll(".toggle-switch input").length,
         quotaHidden: document.getElementById("quotaSection").hidden,
+        homeVisibleAfterToggle: !document.getElementById("homeView").hidden,
+        detailHiddenAfterToggle: document.getElementById("detailView").hidden,
+        settingsButtonText: document.getElementById("settingsButton").textContent,
       };
     })();
   `, true);
@@ -212,6 +217,12 @@ async function runUiSmoke() {
   if (result.selectValue !== "10") throw new Error(`refresh interval did not update: ${result.selectValue}`);
   if (result.toggleCount < 4) throw new Error(`expected 4 setting toggles, got ${result.toggleCount}`);
   if (result.quotaHidden !== true) throw new Error("display toggle did not hide quota section");
+  if (!result.homeVisibleAfterToggle || !result.detailHiddenAfterToggle) {
+    throw new Error("settings button did not toggle back to home");
+  }
+  if (!result.settingsButtonText.includes("设置")) {
+    throw new Error(`settings button label did not reset: ${result.settingsButtonText}`);
+  }
   console.log("tray ui smoke ok");
 }
 

@@ -224,12 +224,14 @@ function showHome() {
   currentView = "home";
   elements.detailView.hidden = true;
   elements.homeView.hidden = false;
+  updateViewControls();
 }
 
 function showResetDetail() {
   currentView = "reset";
   elements.homeView.hidden = true;
   elements.detailView.hidden = false;
+  updateViewControls();
   renderResetDetail(latestPayload?.snapshot || {});
 }
 
@@ -237,6 +239,7 @@ function showApiDetail() {
   currentView = "api";
   elements.homeView.hidden = true;
   elements.detailView.hidden = false;
+  updateViewControls();
   renderApiDetail(latestPayload?.snapshot || {});
 }
 
@@ -244,7 +247,21 @@ function showSettings() {
   currentView = "settings";
   elements.homeView.hidden = true;
   elements.detailView.hidden = false;
+  updateViewControls();
   renderSettingsDetail();
+}
+
+function toggleSettings() {
+  if (currentView === "settings") {
+    showHome();
+    return;
+  }
+  showSettings();
+}
+
+function updateViewControls() {
+  elements.settingsButton.textContent = currentView === "settings" ? "‹ 返回" : "☷ 设置";
+  elements.backButton.hidden = currentView === "settings";
 }
 
 function renderResetDetail(snapshot) {
@@ -559,13 +576,16 @@ elements.refreshButton.addEventListener("click", () => {
 elements.openFolderButton.addEventListener("click", () => window.runway.openCodexFolder());
 elements.closeButton.addEventListener("click", () => window.runway.closePanel());
 elements.closePanelButton.addEventListener("click", () => window.runway.closePanel());
-elements.settingsButton.addEventListener("click", showSettings);
+elements.settingsButton.addEventListener("click", toggleSettings);
 elements.backButton.addEventListener("click", showHome);
 elements.resetCard.addEventListener("click", showResetDetail);
 elements.apiCard.addEventListener("click", showApiDetail);
 
 window.runway.onStatusUpdated(render);
-window.runway.getStatus().then(render);
+window.runway.getStatus().then((payload) => {
+  updateViewControls();
+  render(payload);
+});
 
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape") window.runway.closePanel();
