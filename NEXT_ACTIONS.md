@@ -1,14 +1,15 @@
 ## Now
 
-1. Continue Windows parity work from the current popup panel: packaged Windows distribution is still missing.
-2. Decide whether to keep `Scripts\Build-WindowsCLI.ps1` as the Windows development path or continue investigating SwiftPM's `error: fatalError`.
-3. If investigating SwiftPM, start from the reproduced command: `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v`.
-4. Re-test on macOS before merging, because `Package.swift` now gates the AppKit app and dependencies under `#if os(macOS)`.
-5. For distributable Windows builds, decide whether to bundle Swift runtime DLLs beside `CodexRunwayCLI.exe` or require a local Swift installation.
+1. Restart the local Windows tray preview after the latest package changes and let the user inspect the popup/menu.
+2. Manually verify right-click tray actions when acceptable: `同步/修复会话`, `重启 Codex`, and `重启 VSCode`.
+3. Decide whether to keep `Scripts\Build-WindowsCLI.ps1` as the Windows development path or continue investigating SwiftPM's `error: fatalError`.
+4. If investigating SwiftPM, start from the reproduced command: `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v`.
+5. Re-test on macOS before merging, because `Package.swift` now gates the AppKit app and dependencies under `#if os(macOS)`.
+6. For a release-quality Windows build, decide whether to add a signed installer/update channel on top of the current portable unsigned package.
 
 ## Handoff Notes
 
-Start here: `Scripts\Build-WindowsCLI.ps1` and a new Windows package script for distributable tray builds; `WindowsTray\main.js`, `WindowsTray\renderer.js`, `WindowsTray\window.css`, `WindowsTray\settings.js`, `WindowsTray\alerts.js`, and `WindowsTray\maintenance.js` contain the popup/settings/notification/maintenance behavior.
+Start here: restart the preview with `npm run preview --prefix WindowsTray` or inspect the portable package at `.build\windows-tray-portable\Codex Runway`; `Scripts\Build-WindowsCLI.ps1` remains the development CLI build path and `Scripts\Package-WindowsTray.ps1` creates the portable Windows package.
 
 Do not redo:
 - Swift 6.3.2 and Visual Studio Build Tools are already installed locally.
@@ -27,15 +28,17 @@ Do not redo:
 - Notification alerts are implemented as an opt-in setting and de-duplicated through Electron `userData/alerts.json`.
 - Right-click tray maintenance actions are implemented. Session sync/repair asks for confirmation, writes backups under `~/.codex/backups_state/provider-sync` when it changes files, and was not manually clicked during automated verification.
 - Quota and recent-session homepage entries now open Chinese detail pages with back navigation and UI smoke coverage.
+- A portable unsigned Windows package is implemented by `Scripts\Package-WindowsTray.ps1`; it bundles the tray app, `CodexRunwayCLI.exe`, app icon, and Swift runtime DLLs.
 
 Verify next:
 - `npm run preview --prefix WindowsTray` for persistent popup UI behavior.
 - Manually verify right-click tray actions when acceptable: `同步/修复会话`, `重启 Codex`, and `重启 VSCode`.
 - `npm run ui-smoke --prefix WindowsTray` for renderer settings, quota/reset/recent detail pages, and friendly error smoke coverage.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File Scripts\Package-WindowsTray.ps1` followed by `.build\windows-tray-portable\Codex Runway\Codex Runway.exe --smoke` with `Start-Process -Wait` for package verification.
 - `swift test` on macOS for regression coverage.
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` only if checking whether the Windows SwiftPM blocker has changed.
 
 Do not claim:
 - Do not claim Windows `swift test` passes; it currently fails with SwiftPM `error: fatalError`.
-- Do not claim a packaged Windows app exists; this is a development tray host plus CLI build script.
-- Do not claim feature parity with the macOS app; notifications, update checks, session repair actions, packaging, signing, and system-level settings are not complete.
+- Do not claim a signed Windows installer or automatic self-updater exists; only an unsigned portable package exists.
+- Do not claim full macOS feature parity; signed installer/update automation, macOS regression testing, and manual verification of destructive maintenance actions remain.

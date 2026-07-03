@@ -14,12 +14,22 @@ npm run preview --prefix WindowsTray
 npm start --prefix WindowsTray
 ```
 
+To create a portable Windows package:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Scripts\Package-WindowsTray.ps1
+```
+
+The package is written to `.build\windows-tray-portable\Codex Runway`, with a zip archive at `.build\CodexRunway-Windows-Portable.zip`.
+
 The tray host looks for the CLI in this order:
 
 1. `CODEX_RUNWAY_CLI`
-2. `../.build/release/CodexRunwayCLI.exe`
-3. `../.build/debug/CodexRunwayCLI.exe`
-4. `swift run CodexRunwayCLI --json`
+2. bundled `resources\CodexRunwayCLI.exe` in the portable package
+3. `../.build/windows-cli/CodexRunwayCLI.exe`
+4. `../.build/release/CodexRunwayCLI.exe`
+5. `../.build/debug/CodexRunwayCLI.exe`
+6. `swift run CodexRunwayCLI --json`
 
 The tray reads machine-readable status from:
 

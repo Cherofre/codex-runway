@@ -4,7 +4,7 @@ Last Updated: 2026-07-03
 
 Goal: Port Codex Runway toward Windows in two stages: first a cross-platform CLI, then a Windows tray host that consumes the CLI.
 
-Phase: Stage 2 implemented with a usable Windows tray popup, basic settings panel, opt-in notification alerts, and right-click maintenance actions; SwiftPM on Windows remains blocked by a toolchain-level `fatalError`.
+Phase: Stage 2 implemented with a usable Windows tray popup, basic settings panel, opt-in notification alerts, right-click maintenance actions, and a portable Windows package; SwiftPM on Windows remains blocked by a toolchain-level `fatalError`.
 
 Superpowers Phase: Verification / handoff.
 
@@ -31,6 +31,7 @@ Progress:
 - WindowsTray right-click status summary and tooltip are localized to Chinese, including compact K/M token formatting.
 - WindowsTray settings now include real open-at-login and automatic update-check toggles; update checks use GitHub Releases and are also available from the tray menu.
 - WindowsTray popup now has clickable quota and recent-session entries with Chinese detail pages and back navigation.
+- Added `Scripts\Package-WindowsTray.ps1`, which builds a dedicated package CLI, copies Electron, the tray app, app icon, bundled CLI, and Swift runtime DLLs into `.build\windows-tray-portable\Codex Runway`, and creates `.build\CodexRunway-Windows-Portable.zip`.
 
 Verification Evidence:
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` failed with `error: fatalError` after printing the `CodexRunwayCore` `swiftc` command and no Swift source diagnostics.
@@ -83,12 +84,20 @@ Verification Evidence:
 - `npm test --prefix WindowsTray` passed after quota/recent-session detail pages: 28 tests, 0 failures.
 - `npm run ui-smoke --prefix WindowsTray` passed after quota/recent-session detail pages.
 - `npm run smoke --prefix WindowsTray` passed after quota/recent-session detail pages.
+- PowerShell parser check passed for `Scripts\Package-WindowsTray.ps1`.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File Scripts\Package-WindowsTray.ps1` passed and produced `.build\windows-tray-portable\Codex Runway` plus `.build\CodexRunway-Windows-Portable.zip`.
+- Package content check passed for `Codex Runway.exe`, `resources\app\main.js`, `resources\app\package.json`, `resources\CodexRunwayCLI.exe`, `resources\Resources\AppIcon.png`, and `README-Windows-Portable.txt`; 32 Swift runtime DLLs were bundled under `resources`.
+- Packaged smoke verification passed with `Start-Process -Wait` against `.build\windows-tray-portable\Codex Runway\Codex Runway.exe --smoke`.
+- `npm run check --prefix WindowsTray` passed after portable package updates.
+- `npm test --prefix WindowsTray` passed after portable package updates: 28 tests, 0 failures.
+- `npm run ui-smoke --prefix WindowsTray` passed after portable package updates.
+- `npm run smoke --prefix WindowsTray` passed after portable package updates.
 
 Known Blockers:
 - Native SwiftPM build/test on this Windows Swift 6.3.2 toolchain fails with `error: fatalError`; direct `swiftc` compilation works. Do not claim `swift test` passes on Windows.
-- The Windows tray runtime has been smoke-tested and manually inspected, but it is still an experimental Electron host rather than a packaged Windows release.
-- The Windows CLI executable currently depends on the installed Swift runtime being present; tray startup prepends common Swift runtime paths for development.
-- Several macOS app features are not yet ported: packaged distribution, app signing, and full Windows UI parity. Basic Windows tray settings now exist, including startup integration and update checking.
+- The Windows tray runtime has been smoke-tested and manually inspected, and a portable unsigned package now exists. It is still experimental and not a signed installer.
+- The development Windows CLI executable currently depends on the installed Swift runtime being present; the portable package bundles Swift runtime DLLs beside the CLI.
+- Several macOS app features are not yet ported: signed installer/notarization-equivalent distribution, automatic in-app updating, and full Windows UI parity. Basic Windows tray settings now exist, including startup integration and update checking.
 
 ## History
 
@@ -105,3 +114,4 @@ Known Blockers:
 - 2026-07-03: Localized Windows right-click tray status summary lines to Chinese.
 - 2026-07-03: Added Windows tray startup and update-check settings.
 - 2026-07-03: Added quota and recent-session detail pages to the Windows popup.
+- 2026-07-03: Added a portable Windows tray package script and verified the packaged app smoke path.

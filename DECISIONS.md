@@ -126,3 +126,16 @@ Consequences:
 - Users can access common Codex maintenance actions from the same Runway tray icon.
 - The session sync/repair action remains explicit because it can modify JSONL and SQLite state.
 - Future work can move this repair capability behind the Swift CLI boundary if cross-platform reuse becomes important.
+
+### Decision: Ship Windows Work As A Portable Unsigned Package First
+
+Status: active
+
+Context: The Windows tray host now runs locally, but there is no signing certificate, installer metadata, or updater feed. The SwiftPM Windows toolchain path is also blocked, while the manual `swiftc` build path works.
+
+Decision: Add `Scripts\Package-WindowsTray.ps1` to create a portable Electron package under `.build\windows-tray-portable\Codex Runway` and `.build\CodexRunway-Windows-Portable.zip`. The script builds a dedicated package CLI staging output, bundles the tray app, app icon, CLI executable, and Swift runtime DLLs.
+
+Consequences:
+- Users can run and inspect a distributable Windows build before installer/signing work exists.
+- Development preview remains separate from package staging, so a running tray preview does not lock the CLI executable used by packaging.
+- A signed installer, MSI/NSIS flow, and automatic install/update behavior remain future release work.
