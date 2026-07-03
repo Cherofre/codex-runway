@@ -113,3 +113,16 @@ Consequences:
 - Users can enable Windows system notifications from the settings page when they want them.
 - The first implementation avoids repeating the same quota threshold or reset-credit expiry after restart.
 - Packaging work may later need to revisit Windows notification identity and installer metadata.
+
+### Decision: Add Maintenance Actions To The Tray Context Menu
+
+Status: active
+
+Context: The local `codex-tray-switcher` PowerShell tool already has useful Windows-only operations for restarting Codex/VSCode and repairing Codex session provider/index metadata.
+
+Decision: Move the useful operations into the Electron tray context menu instead of running a second tray app. Restart actions execute hidden PowerShell scripts. Session sync/repair runs a temporary embedded Python helper, asks for confirmation first, and backs up changed Codex state under `~/.codex/backups_state/provider-sync`.
+
+Consequences:
+- Users can access common Codex maintenance actions from the same Runway tray icon.
+- The session sync/repair action remains explicit because it can modify JSONL and SQLite state.
+- Future work can move this repair capability behind the Swift CLI boundary if cross-platform reuse becomes important.

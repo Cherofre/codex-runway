@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, nativeImage, Notification, screen, shell, Tray } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, screen, shell, Tray } = require("electron");
 const { execFile } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -18,6 +18,11 @@ const {
   formatStatusLines,
   formatTooltip,
 } = require("./status");
+const {
+  restartCodex,
+  restartVSCode,
+  syncCodexSessions,
+} = require("./maintenance");
 const { defaultSettings, mergeSettings } = require("./settings");
 
 const execFileAsync = promisify(execFile);
@@ -37,6 +42,7 @@ let settings = { ...defaultSettings };
 let settingsPath = null;
 let alertState = normalizeAlertState();
 let alertStatePath = null;
+let maintenanceBusy = false;
 
 function iconPath() {
   return path.join(repoRoot, "Resources", "AppIcon.png");
@@ -181,6 +187,91 @@ function deliverNotifications(snapshot) {
   saveAlertState();
 }
 
+function showSystemNotice(title, body) {
+  if (smokeMode || uiSmokeMode) return;
+  if (typeof Notification.isSupported === "function" && !Notification.isSupported()) return;
+  try {
+    new Notification({ title, body }).show();
+  } catch {}
+}
+
+function dialogTarget() {
+  return statusWindow && !statusWindow.isDestroyed() ? statusWindow : null;
+}
+
+function showDialog(options) {
+  const target = dialogTarget();
+  return target ? dialog.showMessageBox(target, options) : dialog.showMessageBox(options);
+}
+
+async function runMaintenanceAction(label, action, {
+  confirm = false,
+  refreshAfter = false,
+  confirmDetail = "",
+} = {}) {
+  if (maintenanceBusy) return;
+  if (process.platform !== "win32") {
+    await showDialog({
+      type: "warning",
+      message: `${label}仅支持 Windows`,
+      buttons: ["确定"],
+    });
+    return;
+  }
+
+  if (confirm) {
+    const answer = await showDialog({
+      type: "warning",
+      buttons: ["继续", "取消"],
+      defaultId: 1,
+      cancelId: 1,
+      message: `要执行${label}吗？`,
+      detail: confirmDetail,
+    });
+    if (answer.response !== 0) return;
+  }
+
+  maintenanceBusy = true;
+  updateMenu({ loading: isRefreshing });
+  showSystemNotice("Codex Runway", `${label}正在执行`);
+  try {
+    const result = await action();
+    showSystemNotice("Codex Runway", result.summary || `${label}完成`);
+    await showDialog({
+      type: "info",
+      buttons: ["确定"],
+      message: result.summary || `${label}完成`,
+      detail: result.detail || "",
+    });
+    if (refreshAfter) {
+      refreshStatus();
+    }
+  } catch (error) {
+    showSystemNotice("Codex Runway", `${label}失败：${error.message}`);
+    await showDialog({
+      type: "error",
+      buttons: ["确定"],
+      message: `${label}失败`,
+      detail: error.message,
+    });
+  } finally {
+    maintenanceBusy = false;
+    updateMenu({ loading: isRefreshing });
+  }
+}
+
+function runSessionSyncFromMenu() {
+  runMaintenanceAction("同步/修复会话", () => syncCodexSessions(), {
+    confirm: true,
+    refreshAfter: true,
+    confirmDetail: [
+      "将扫描 ~/.codex/sessions、archived_sessions、sqlite 数据库和旧 state_5.sqlite。",
+      "会把会话 provider 同步到当前 config.toml 的 model_provider，并回填 has_user_event / cwd。",
+      "有实际改动时会先备份到 ~/.codex/backups_state/provider-sync。",
+    ].join("\n"),
+  });
+}
+
 function updateSettings(patch) {
   settings = mergeSettings(settings, patch);
   saveSettings();
@@ -323,6 +414,7 @@ async function runUiSmoke() {
         resetHasSummary: Boolean(document.querySelector("#detailContent .reset-summary")),
         resetMetricGridCount: document.querySelectorAll("#detailContent .metric-grid").length,
         resetRowCount: document.querySelectorAll("#detailContent .reset-credit-row").length,
+        resetFirstSideText: document.querySelector("#detailContent .reset-credit-side")?.textContent || "",
       };
       render({
         loading: false,
@@ -369,6 +461,9 @@ async function runUiSmoke() {
   if (!result.resetHasSummary) throw new Error("reset detail did not render compact summary");
   if (result.resetMetricGridCount !== 0) throw new Error("reset detail still renders metric cards");
   if (result.resetRowCount !== 2) throw new Error(`reset detail row count mismatch: ${result.resetRowCount}`);
+  if (!result.resetFirstSideText.startsWith("15天")) {
+    throw new Error(`reset status order is not time-first: ${result.resetFirstSideText}`);
+  }
   if (!result.errorPanelText.includes("配额：请求超时，请稍后刷新")) {
     throw new Error(`timeout error text is not friendly: ${result.errorPanelText}`);
   }
@@ -427,15 +522,33 @@ function updateMenu({ loading = false } = {}) {
     label: line,
     enabled: false,
   }));
+  const maintenanceEnabled = process.platform === "win32" && !maintenanceBusy;
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: "Codex Runway", enabled: false },
     { type: "separator" },
     ...statusItems,
     { type: "separator" },
-    { label: "Open Panel", click: toggleStatusWindow },
-    { label: loading ? "Refreshing..." : "Refresh Now", enabled: !loading, click: refreshStatus },
-    { label: "Open Codex Folder", click: () => shell.openPath(path.join(os.homedir(), ".codex")) },
-    { label: "Quit", click: () => app.quit() },
+    { label: "打开面板", click: toggleStatusWindow },
+    { label: loading ? "正在刷新..." : "立即刷新", enabled: !loading, click: refreshStatus },
+    { type: "separator" },
+    {
+      label: maintenanceBusy ? "同步/修复会话执行中..." : "同步/修复会话",
+      enabled: maintenanceEnabled,
+      click: runSessionSyncFromMenu,
+    },
+    {
+      label: "重启 Codex",
+      enabled: maintenanceEnabled,
+      click: () => runMaintenanceAction("重启 Codex", () => restartCodex()),
+    },
+    {
+      label: "重启 VSCode",
+      enabled: maintenanceEnabled,
+      click: () => runMaintenanceAction("重启 VSCode", () => restartVSCode()),
+    },
+    { type: "separator" },
+    { label: "打开 Codex 文件夹", click: () => shell.openPath(path.join(os.homedir(), ".codex")) },
+    { label: "退出托盘", click: () => app.quit() },
   ]));
 }
 

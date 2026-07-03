@@ -484,7 +484,7 @@ function resetCreditList(credits) {
     const badge = textNode("span", riskLabel(credit.risk, credit.status));
     badge.className = `risk-badge risk-${credit.risk || "unknown"}`;
     const remaining = textNode("small", credit.remainingSeconds == null ? "--" : compactDuration(credit.remainingSeconds));
-    side.append(badge, remaining);
+    side.append(remaining, badge);
 
     row.append(main, side);
     list.append(row);

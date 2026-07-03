@@ -4,7 +4,7 @@ Last Updated: 2026-07-03
 
 Goal: Port Codex Runway toward Windows in two stages: first a cross-platform CLI, then a Windows tray host that consumes the CLI.
 
-Phase: Stage 2 implemented with a usable Windows tray popup, basic settings panel, and opt-in notification alerts; SwiftPM on Windows remains blocked by a toolchain-level `fatalError`.
+Phase: Stage 2 implemented with a usable Windows tray popup, basic settings panel, opt-in notification alerts, and right-click maintenance actions; SwiftPM on Windows remains blocked by a toolchain-level `fatalError`.
 
 Superpowers Phase: Verification / handoff.
 
@@ -26,6 +26,8 @@ Progress:
 - WindowsTray now formats raw network failures such as `NSURLErrorDomain error -1001` into Chinese user-facing messages and retries one transient CLI status snapshot failure before showing the error.
 - `CodexRunwayCLI --json` errors now include structured `code`, `rawMessage`, and `isRetryable` fields while preserving `area` and user-facing `message`.
 - WindowsTray now has opt-in local notification alerts for quota thresholds and expiring reset credits, with Electron userData de-duplication.
+- WindowsTray right-click menu now includes restart Codex, restart VSCode, and confirm-first session sync/repair actions adapted from the local PowerShell tray tool.
+- Reset credit detail rows now place remaining time before the availability badge to avoid staggered right-side labels.
 
 Verification Evidence:
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` failed with `error: fatalError` after printing the `CodexRunwayCore` `swiftc` command and no Swift source diagnostics.
@@ -61,12 +63,17 @@ Verification Evidence:
 - `npm run ui-smoke --prefix WindowsTray` passed after notification alert updates.
 - `npm run smoke --prefix WindowsTray` passed after notification alert updates.
 - `git diff --check` passed after notification alert updates; output only contained Windows CRLF conversion warnings.
+- `npm run check --prefix WindowsTray` passed after right-click maintenance and reset-row UI updates.
+- `npm test --prefix WindowsTray` passed after right-click maintenance and reset-row UI updates: 22 tests, 0 failures.
+- `npm run ui-smoke --prefix WindowsTray` passed after right-click maintenance and reset-row UI updates; it now asserts reset row status order is time-first.
+- `npm run smoke --prefix WindowsTray` passed after right-click maintenance and reset-row UI updates.
+- Maintenance actions were not manually clicked during verification because session sync/repair mutates `~/.codex` and restart actions intentionally restart local apps; script coverage verifies the generated restart scripts and embedded sync/repair helper structure.
 
 Known Blockers:
 - Native SwiftPM build/test on this Windows Swift 6.3.2 toolchain fails with `error: fatalError`; direct `swiftc` compilation works. Do not claim `swift test` passes on Windows.
 - The Windows tray runtime has been smoke-tested and manually inspected, but it is still an experimental Electron host rather than a packaged Windows release.
 - The Windows CLI executable currently depends on the installed Swift runtime being present; tray startup prepends common Swift runtime paths for development.
-- Several macOS app features are not yet ported: update checking, session repair actions, complete side panels, packaged installer/startup integration, app signing, and full Windows UI parity. Basic Windows tray settings now exist, but system-level settings such as startup integration are still placeholders.
+- Several macOS app features are not yet ported: update checking, complete side panels, packaged installer/startup integration, app signing, and full Windows UI parity. Basic Windows tray settings now exist, but system-level settings such as startup integration are still placeholders.
 
 ## History
 
@@ -79,3 +86,4 @@ Known Blockers:
 - 2026-07-02: Added transient Windows tray refresh retry and friendly timeout/network error formatting.
 - 2026-07-02: Added structured CLI JSON error fields and updated the tray to prefer them.
 - 2026-07-03: Added opt-in Windows tray notification alerts with local de-duplication.
+- 2026-07-03: Added right-click maintenance actions and tightened reset credit detail row layout.

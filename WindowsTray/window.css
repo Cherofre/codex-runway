@@ -580,16 +580,20 @@ h2 {
 }
 
 .reset-credit-side {
+  min-width: 86px;
   display: flex;
   align-items: center;
-  justify-items: end;
+  justify-content: flex-end;
   gap: 6px;
   flex: 0 0 auto;
 }
 
 .reset-credit-side small {
+  min-width: 42px;
   color: var(--muted);
   font-size: 9.5px;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .risk-badge {
