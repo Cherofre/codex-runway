@@ -28,6 +28,7 @@ Progress:
 - WindowsTray now has opt-in local notification alerts for quota thresholds and expiring reset credits, with Electron userData de-duplication.
 - WindowsTray right-click menu now includes restart Codex, restart VSCode, and confirm-first session sync/repair actions adapted from the local PowerShell tray tool.
 - Reset credit detail rows now place remaining time before the availability badge to avoid staggered right-side labels.
+- WindowsTray right-click status summary and tooltip are localized to Chinese, including compact K/M token formatting.
 
 Verification Evidence:
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` failed with `error: fatalError` after printing the `CodexRunwayCore` `swiftc` command and no Swift source diagnostics.
@@ -68,6 +69,10 @@ Verification Evidence:
 - `npm run ui-smoke --prefix WindowsTray` passed after right-click maintenance and reset-row UI updates; it now asserts reset row status order is time-first.
 - `npm run smoke --prefix WindowsTray` passed after right-click maintenance and reset-row UI updates.
 - Maintenance actions were not manually clicked during verification because session sync/repair mutates `~/.codex` and restart actions intentionally restart local apps; script coverage verifies the generated restart scripts and embedded sync/repair helper structure.
+- `npm run check --prefix WindowsTray` passed after Chinese right-click status summary updates.
+- `npm test --prefix WindowsTray` passed after Chinese right-click status summary updates: 23 tests, 0 failures.
+- `npm run ui-smoke --prefix WindowsTray` passed after Chinese right-click status summary updates.
+- `npm run smoke --prefix WindowsTray` passed after Chinese right-click status summary updates.
 
 Known Blockers:
 - Native SwiftPM build/test on this Windows Swift 6.3.2 toolchain fails with `error: fatalError`; direct `swiftc` compilation works. Do not claim `swift test` passes on Windows.
@@ -87,3 +92,4 @@ Known Blockers:
 - 2026-07-02: Added structured CLI JSON error fields and updated the tray to prefer them.
 - 2026-07-03: Added opt-in Windows tray notification alerts with local de-duplication.
 - 2026-07-03: Added right-click maintenance actions and tightened reset credit detail row layout.
+- 2026-07-03: Localized Windows right-click tray status summary lines to Chinese.

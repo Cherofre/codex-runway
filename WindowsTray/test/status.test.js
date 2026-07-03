@@ -88,10 +88,31 @@ test("formatTooltip summarizes primary quota", () => {
     errors: [],
   });
 
-  assert.equal(tooltip, "Codex Runway: 58% left, resets in 1h");
+  assert.equal(tooltip, "Codex Runway：58% 剩余，1小时后重置");
 });
 
-test("formatStatusLines includes errors without throwing", () => {
+test("formatStatusLines localizes status summary", () => {
+  const lines = formatStatusLines({
+    quota: {
+      primary: { remainingPercent: 64 },
+      secondary: { remainingPercent: 54 },
+    },
+    resetCredits: { availableCount: 4, totalCount: 4 },
+    apiEquivalent: { estimatedUSD: 54.6555, totalTokens: 62_704_674 },
+    sessions: { plannedEntries: 325, missingCount: 163, orphanCount: 88 },
+    errors: [],
+  });
+
+  assert.deepEqual(lines, [
+    "5 小时配额：64% 剩余",
+    "每周配额：54% 剩余",
+    "重置次数：4/4",
+    "API 等价成本：$54.6555，62.70M Tokens",
+    "会话：325 已索引，163 缺失，88 孤立",
+  ]);
+});
+
+test("formatStatusLines includes localized errors without throwing", () => {
   const lines = formatStatusLines({
     quota: null,
     sessions: { plannedEntries: 3, missingCount: 1, orphanCount: 0 },
@@ -99,8 +120,8 @@ test("formatStatusLines includes errors without throwing", () => {
   });
 
   assert.deepEqual(lines, [
-    "Quota unavailable",
-    "Sessions: 3 indexed, 1 missing, 0 orphan",
+    "配额暂不可用",
+    "会话：3 已索引，1 缺失，0 孤立",
     "配额：offline",
   ]);
 });
@@ -115,7 +136,7 @@ test("formatStatusLines hides raw timeout errors", () => {
   });
 
   assert.deepEqual(lines, [
-    "Quota unavailable",
+    "配额暂不可用",
     "配额：请求超时，请稍后刷新",
   ]);
 });

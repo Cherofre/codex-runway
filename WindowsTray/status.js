@@ -84,39 +84,39 @@ function formatTooltip(snapshot) {
   const primary = snapshot && snapshot.quota && snapshot.quota.primary;
   if (!primary) {
     const firstError = snapshot && Array.isArray(snapshot.errors) && snapshot.errors[0];
-    return firstError ? `Codex Runway: ${friendlyErrorMessage(firstError.message)}` : "Codex Runway";
+    return firstError ? `Codex Runway：${friendlyErrorMessage(firstError.message)}` : "Codex Runway";
   }
-  const resetText = primary.secondsUntilReset == null ? "" : `, resets in ${compactDuration(primary.secondsUntilReset)}`;
-  return `Codex Runway: ${primary.remainingPercent}% left${resetText}`;
+  const resetText = primary.secondsUntilReset == null ? "" : `，${compactDuration(primary.secondsUntilReset)}后重置`;
+  return `Codex Runway：${primary.remainingPercent}% 剩余${resetText}`;
 }
 
 function formatStatusLines(snapshot) {
   const lines = [];
   const quota = snapshot && snapshot.quota;
   if (quota && quota.primary) {
-    lines.push(`5h quota: ${quota.primary.remainingPercent}% left`);
+    lines.push(`5 小时配额：${quota.primary.remainingPercent}% 剩余`);
     if (quota.secondary) {
-      lines.push(`Weekly quota: ${quota.secondary.remainingPercent}% left`);
+      lines.push(`每周配额：${quota.secondary.remainingPercent}% 剩余`);
     }
   } else {
-    lines.push("Quota unavailable");
+    lines.push("配额暂不可用");
   }
 
   if (snapshot && snapshot.resetCredits) {
-    lines.push(`Reset credits: ${snapshot.resetCredits.availableCount}/${snapshot.resetCredits.totalCount}`);
+    lines.push(`重置次数：${snapshot.resetCredits.availableCount}/${snapshot.resetCredits.totalCount}`);
   }
 
   if (snapshot && snapshot.apiEquivalent) {
     const amount = snapshot.apiEquivalent.estimatedUSD == null
       ? "--"
       : `$${Number(snapshot.apiEquivalent.estimatedUSD).toFixed(4)}`;
-    lines.push(`API equivalent: ${amount}, ${snapshot.apiEquivalent.totalTokens} tokens`);
+    lines.push(`API 等价成本：${amount}，${formatTokens(snapshot.apiEquivalent.totalTokens)} Tokens`);
   }
 
   if (snapshot && snapshot.sessions) {
     lines.push(
-      `Sessions: ${snapshot.sessions.plannedEntries} indexed, ` +
-      `${snapshot.sessions.missingCount} missing, ${snapshot.sessions.orphanCount} orphan`);
+      `会话：${snapshot.sessions.plannedEntries} 已索引，` +
+      `${snapshot.sessions.missingCount} 缺失，${snapshot.sessions.orphanCount} 孤立`);
   }
 
   for (const error of (snapshot && snapshot.errors) || []) {
@@ -130,16 +130,24 @@ function compactDuration(seconds) {
   const value = Math.max(0, Number(seconds) || 0);
   const hours = Math.floor(value / 3600);
   const minutes = Math.floor((value % 3600) / 60);
-  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
-  if (hours > 0) return `${hours}h`;
-  if (minutes > 0) return `${minutes}m`;
-  return `${Math.floor(value)}s`;
+  if (hours > 0 && minutes > 0) return `${hours}小时${minutes}分钟`;
+  if (hours > 0) return `${hours}小时`;
+  if (minutes > 0) return `${minutes}分钟`;
+  return `${Math.floor(value)}秒`;
+}
+
+function formatTokens(value) {
+  const number = Number(value) || 0;
+  if (number >= 1_000_000) return `${(number / 1_000_000).toFixed(2)}M`;
+  if (number >= 1_000) return `${(number / 1_000).toFixed(1)}K`;
+  return `${Math.round(number)}`;
 }
 
 module.exports = {
   buildCliEnvironment,
   buildCliInvocation,
   compactDuration,
+  formatTokens,
   formatStatusLines,
   formatTooltip,
 };
