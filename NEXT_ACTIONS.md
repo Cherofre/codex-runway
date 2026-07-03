@@ -1,6 +1,6 @@
 ## Now
 
-1. Continue Windows parity work from the current popup panel: complete detail side panels and packaged Windows distribution are still missing.
+1. Continue Windows parity work from the current popup panel: packaged Windows distribution is still missing.
 2. Decide whether to keep `Scripts\Build-WindowsCLI.ps1` as the Windows development path or continue investigating SwiftPM's `error: fatalError`.
 3. If investigating SwiftPM, start from the reproduced command: `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v`.
 4. Re-test on macOS before merging, because `Package.swift` now gates the AppKit app and dependencies under `#if os(macOS)`.
@@ -8,7 +8,7 @@
 
 ## Handoff Notes
 
-Start here: `WindowsTray\main.js`, `WindowsTray\renderer.js`, `WindowsTray\window.css`, `WindowsTray\settings.js`, `WindowsTray\alerts.js`, and `WindowsTray\maintenance.js` for popup/settings/notification/maintenance behavior; `Scripts\Build-WindowsCLI.ps1` remains the working Windows CLI build path.
+Start here: `Scripts\Build-WindowsCLI.ps1` and a new Windows package script for distributable tray builds; `WindowsTray\main.js`, `WindowsTray\renderer.js`, `WindowsTray\window.css`, `WindowsTray\settings.js`, `WindowsTray\alerts.js`, and `WindowsTray\maintenance.js` contain the popup/settings/notification/maintenance behavior.
 
 Do not redo:
 - Swift 6.3.2 and Visual Studio Build Tools are already installed locally.
@@ -26,11 +26,12 @@ Do not redo:
 - Windows tray startup and update-check settings are implemented. Update checking opens GitHub Releases when a newer tag is found; it does not silently install updates.
 - Notification alerts are implemented as an opt-in setting and de-duplicated through Electron `userData/alerts.json`.
 - Right-click tray maintenance actions are implemented. Session sync/repair asks for confirmation, writes backups under `~/.codex/backups_state/provider-sync` when it changes files, and was not manually clicked during automated verification.
+- Quota and recent-session homepage entries now open Chinese detail pages with back navigation and UI smoke coverage.
 
 Verify next:
 - `npm run preview --prefix WindowsTray` for persistent popup UI behavior.
 - Manually verify right-click tray actions when acceptable: `同步/修复会话`, `重启 Codex`, and `重启 VSCode`.
-- `npm run ui-smoke --prefix WindowsTray` for renderer settings, reset detail, and friendly error smoke coverage.
+- `npm run ui-smoke --prefix WindowsTray` for renderer settings, quota/reset/recent detail pages, and friendly error smoke coverage.
 - `swift test` on macOS for regression coverage.
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` only if checking whether the Windows SwiftPM blocker has changed.
 

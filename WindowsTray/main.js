@@ -461,11 +461,35 @@ async function runUiSmoke() {
             ],
           },
           sessions: null,
-          recentSessions: [],
+          recentSessions: [{
+            id: "s1",
+            title: "Windows tray polish",
+            projectName: "codex-runway",
+            updatedAt: "2026-07-02T14:30:00Z",
+            state: "recent",
+            totalTokens: 12345,
+            estimatedUSD: 1.2345,
+          }],
           apiEquivalent: null,
           errors: [],
         },
       });
+      await delay(80);
+      document.querySelector(".quota-item").click();
+      await delay(80);
+      const quotaDetailResult = {
+        quotaDetailTitle: document.getElementById("detailTitle").textContent,
+        quotaDetailRows: document.querySelectorAll("#detailContent .detail-row").length,
+      };
+      document.getElementById("backButton").click();
+      await delay(80);
+      document.querySelector(".session-item").click();
+      await delay(80);
+      const recentDetailResult = {
+        recentDetailTitle: document.getElementById("detailTitle").textContent,
+        recentDetailRows: document.querySelectorAll("#detailContent .session-detail-row").length,
+      };
+      document.getElementById("backButton").click();
       await delay(80);
       document.getElementById("resetCard").click();
       await delay(80);
@@ -504,6 +528,8 @@ async function runUiSmoke() {
       await delay(80);
       return {
         ...settingsResult,
+        ...quotaDetailResult,
+        ...recentDetailResult,
         ...resetResult,
         errorPanelText: document.getElementById("errorPanel").textContent,
       };
@@ -520,6 +546,10 @@ async function runUiSmoke() {
     throw new Error(`settings button label did not reset: ${result.settingsButtonText}`);
   }
   if (!result.resetHasSummary) throw new Error("reset detail did not render compact summary");
+  if (result.quotaDetailTitle !== "配额详情") throw new Error(`quota detail title mismatch: ${result.quotaDetailTitle}`);
+  if (result.quotaDetailRows < 2) throw new Error(`quota detail rows missing: ${result.quotaDetailRows}`);
+  if (result.recentDetailTitle !== "最近会话") throw new Error(`recent detail title mismatch: ${result.recentDetailTitle}`);
+  if (result.recentDetailRows < 1) throw new Error(`recent detail rows missing: ${result.recentDetailRows}`);
   if (result.resetMetricGridCount !== 0) throw new Error("reset detail still renders metric cards");
   if (result.resetRowCount !== 2) throw new Error(`reset detail row count mismatch: ${result.resetRowCount}`);
   if (!result.resetFirstSideText.startsWith("15天")) {

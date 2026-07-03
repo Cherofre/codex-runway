@@ -61,6 +61,8 @@ function render(payload) {
   applySettingsVisibility();
   if (currentView === "reset") renderResetDetail(snapshot);
   if (currentView === "api") renderApiDetail(snapshot);
+  if (currentView === "quota") renderQuotaDetail(snapshot);
+  if (currentView === "recent") renderRecentDetail(snapshot);
   if (currentView === "settings") renderSettingsDetail();
 }
 
@@ -84,8 +86,10 @@ function renderQuota(quota) {
 
 function quotaItem(label, window) {
   const remaining = clampPercent(window.remainingPercent);
-  const item = document.createElement("div");
+  const item = document.createElement("button");
+  item.type = "button";
   item.className = "quota-item";
+  item.addEventListener("click", showQuotaDetail);
 
   const line = document.createElement("div");
   line.className = "quota-line";
@@ -147,8 +151,10 @@ function renderSessions(snapshot) {
 }
 
 function sessionItem(item) {
-  const row = document.createElement("article");
+  const row = document.createElement("button");
+  row.type = "button";
   row.className = "session-item";
+  row.addEventListener("click", showRecentDetail);
 
   const dot = document.createElement("span");
   dot.className = "dot";
@@ -265,6 +271,22 @@ function showApiDetail() {
   renderApiDetail(latestPayload?.snapshot || {});
 }
 
+function showQuotaDetail() {
+  currentView = "quota";
+  elements.homeView.hidden = true;
+  elements.detailView.hidden = false;
+  updateViewControls();
+  renderQuotaDetail(latestPayload?.snapshot || {});
+}
+
+function showRecentDetail() {
+  currentView = "recent";
+  elements.homeView.hidden = true;
+  elements.detailView.hidden = false;
+  updateViewControls();
+  renderRecentDetail(latestPayload?.snapshot || {});
+}
+
 function showSettings() {
   currentView = "settings";
   elements.homeView.hidden = true;
@@ -324,6 +346,55 @@ function renderApiDetail(snapshot) {
       ["计算时间", fullDate(api.calculatedAt)],
     ]),
     detailNote("这里按本机会话 JSONL 统计 API 等价成本，不上传会话内容。"));
+}
+
+function renderQuotaDetail(snapshot) {
+  const quota = snapshot.quota;
+  elements.detailTitle.textContent = "配额详情";
+  elements.detailSubtitle.textContent = quota?.plan ? `${planLabel(quota.plan)} · ${relativeTime(snapshot.generatedAt)}` : "数据暂不可用";
+  elements.detailContent.replaceChildren();
+  if (!quota?.primary) {
+    elements.detailContent.append(emptyState("配额暂不可用"));
+    return;
+  }
+
+  const windows = quotaWindows(quota);
+  const primary = quota.primary;
+  elements.detailContent.append(
+    metricGrid([
+      ["5 小时剩余", `${clampPercent(primary.remainingPercent)}%`],
+      ["5 小时重置", primary.secondsUntilReset == null ? "--" : compactDuration(primary.secondsUntilReset)],
+      ["每周剩余", quota.secondary ? `${clampPercent(quota.secondary.remainingPercent)}%` : "--"],
+      ["窗口数量", String(windows.length)],
+    ]),
+    detailTable(windows.flatMap(({ label, window }) => [
+      [`${label} 剩余`, `${clampPercent(window.remainingPercent)}%`],
+      [`${label} 已用`, `${100 - clampPercent(window.remainingPercent)}%`],
+      [`${label} 重置`, window.resetsAt ? fullDate(window.resetsAt) : resetLabel(window.secondsUntilReset)],
+    ])),
+    detailNote("配额详情来自 Codex 远端状态，只在本机托盘中展示。"));
+}
+
+function renderRecentDetail(snapshot) {
+  const sessions = snapshot.recentSessions || [];
+  elements.detailTitle.textContent = "最近会话";
+  elements.detailSubtitle.textContent = snapshot.sessions
+    ? `${snapshot.sessions.plannedEntries} 已索引 · ${snapshot.sessions.missingCount} 缺失`
+    : `${sessions.length} 条`;
+  elements.detailContent.replaceChildren();
+  if (sessions.length === 0) {
+    elements.detailContent.append(emptyState("最近会话为空"));
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className = "session-detail-list";
+  for (const item of sessions) {
+    list.append(sessionDetailRow(item));
+  }
+  elements.detailContent.append(
+    list,
+    detailNote("最近会话按本地 Codex JSONL 的更新时间排序，不上传会话内容。"));
 }
 
 function renderSettingsDetail() {
@@ -485,6 +556,34 @@ function detailNote(text) {
   note.className = "detail-note";
   note.textContent = text;
   return note;
+}
+
+function quotaWindows(quota) {
+  return [
+    quota?.primary ? { label: "5 小时", window: quota.primary } : null,
+    quota?.secondary ? { label: "每周", window: quota.secondary } : null,
+    ...((quota?.additional || []).map((item) => ({ label: item.name, window: item.window }))),
+  ].filter(Boolean);
+}
+
+function sessionDetailRow(item) {
+  const row = document.createElement("article");
+  row.className = "session-detail-row";
+
+  const main = document.createElement("div");
+  main.className = "session-detail-main";
+  const title = textNode("strong", item.title || item.projectName || "Untitled");
+  const meta = textNode(
+    "small",
+    `${item.projectName || "local"} · ${formatTokens(item.totalTokens)} Tokens · ${relativeTime(item.updatedAt)}`);
+  main.append(title, meta);
+
+  const side = document.createElement("div");
+  side.className = "session-detail-side";
+  side.append(textNode("strong", formatMoney(item.estimatedUSD)), textNode("small", item.state || "recent"));
+
+  row.append(main, side);
+  return row;
 }
 
 function resetCreditList(credits) {

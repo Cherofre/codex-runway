@@ -172,8 +172,19 @@ h1 {
 }
 
 .quota-item {
+  width: 100%;
   display: grid;
   gap: 4px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quota-item:hover .progress-track {
+  background: rgba(8, 20, 31, 0.46);
 }
 
 .quota-line {
@@ -650,12 +661,72 @@ h2 {
 }
 
 .session-item {
+  width: 100%;
   display: grid;
   grid-template-columns: 7px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   min-height: 42px;
   padding: 7px 9px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.session-detail-list {
+  display: grid;
+  gap: 6px;
+}
+
+.session-detail-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+  min-height: 46px;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.session-detail-main {
+  min-width: 0;
+}
+
+.session-detail-main strong,
+.session-detail-main small,
+.session-detail-side strong,
+.session-detail-side small {
+  display: block;
+}
+
+.session-detail-main strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-detail-main small {
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-detail-side {
+  color: #dbeeff;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.session-detail-side small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 500;
 }
 
 .dot {

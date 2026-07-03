@@ -30,6 +30,7 @@ Progress:
 - Reset credit detail rows now place remaining time before the availability badge to avoid staggered right-side labels.
 - WindowsTray right-click status summary and tooltip are localized to Chinese, including compact K/M token formatting.
 - WindowsTray settings now include real open-at-login and automatic update-check toggles; update checks use GitHub Releases and are also available from the tray menu.
+- WindowsTray popup now has clickable quota and recent-session entries with Chinese detail pages and back navigation.
 
 Verification Evidence:
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` failed with `error: fatalError` after printing the `CodexRunwayCore` `swiftc` command and no Swift source diagnostics.
@@ -78,12 +79,16 @@ Verification Evidence:
 - `npm test --prefix WindowsTray` passed after startup/update-check settings: 28 tests, 0 failures.
 - `npm run ui-smoke --prefix WindowsTray` passed after startup/update-check settings.
 - `npm run smoke --prefix WindowsTray` passed after startup/update-check settings.
+- `npm run check --prefix WindowsTray` passed after quota/recent-session detail pages.
+- `npm test --prefix WindowsTray` passed after quota/recent-session detail pages: 28 tests, 0 failures.
+- `npm run ui-smoke --prefix WindowsTray` passed after quota/recent-session detail pages.
+- `npm run smoke --prefix WindowsTray` passed after quota/recent-session detail pages.
 
 Known Blockers:
 - Native SwiftPM build/test on this Windows Swift 6.3.2 toolchain fails with `error: fatalError`; direct `swiftc` compilation works. Do not claim `swift test` passes on Windows.
 - The Windows tray runtime has been smoke-tested and manually inspected, but it is still an experimental Electron host rather than a packaged Windows release.
 - The Windows CLI executable currently depends on the installed Swift runtime being present; tray startup prepends common Swift runtime paths for development.
-- Several macOS app features are not yet ported: complete side panels, packaged installer/startup integration, app signing, and full Windows UI parity. Basic Windows tray settings now exist, including startup integration and update checking.
+- Several macOS app features are not yet ported: packaged distribution, app signing, and full Windows UI parity. Basic Windows tray settings now exist, including startup integration and update checking.
 
 ## History
 
@@ -99,3 +104,4 @@ Known Blockers:
 - 2026-07-03: Added right-click maintenance actions and tightened reset credit detail row layout.
 - 2026-07-03: Localized Windows right-click tray status summary lines to Chinese.
 - 2026-07-03: Added Windows tray startup and update-check settings.
+- 2026-07-03: Added quota and recent-session detail pages to the Windows popup.
