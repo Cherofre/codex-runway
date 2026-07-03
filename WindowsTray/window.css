@@ -448,6 +448,21 @@ h2 {
   white-space: nowrap;
 }
 
+.action-button {
+  height: 26px;
+  min-width: 52px;
+  padding: 0 10px;
+  border: 1px solid rgba(197, 223, 242, 0.14);
+  border-radius: 7px;
+  color: #e5f3ff;
+  background: rgba(255, 255, 255, 0.085);
+  cursor: pointer;
+}
+
+.action-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
 .reset-summary {
   display: grid;
   grid-template-columns: 86px minmax(0, 1fr);

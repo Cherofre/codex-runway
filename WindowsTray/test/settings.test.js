@@ -23,6 +23,8 @@ test("mergeSettings applies supported values and ignores unknown keys", () => {
     showResetCredits: false,
     showApiEquivalent: false,
     notificationsEnabled: true,
+    startAtLogin: true,
+    autoCheckUpdates: true,
     unknown: "ignored",
   });
 
@@ -32,6 +34,8 @@ test("mergeSettings applies supported values and ignores unknown keys", () => {
     showResetCredits: false,
     showApiEquivalent: false,
     notificationsEnabled: true,
+    startAtLogin: true,
+    autoCheckUpdates: true,
   });
   assert.equal(Object.hasOwn(settings, "unknown"), false);
 });

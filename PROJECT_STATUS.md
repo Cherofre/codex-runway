@@ -29,6 +29,7 @@ Progress:
 - WindowsTray right-click menu now includes restart Codex, restart VSCode, and confirm-first session sync/repair actions adapted from the local PowerShell tray tool.
 - Reset credit detail rows now place remaining time before the availability badge to avoid staggered right-side labels.
 - WindowsTray right-click status summary and tooltip are localized to Chinese, including compact K/M token formatting.
+- WindowsTray settings now include real open-at-login and automatic update-check toggles; update checks use GitHub Releases and are also available from the tray menu.
 
 Verification Evidence:
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` failed with `error: fatalError` after printing the `CodexRunwayCore` `swiftc` command and no Swift source diagnostics.
@@ -73,12 +74,16 @@ Verification Evidence:
 - `npm test --prefix WindowsTray` passed after Chinese right-click status summary updates: 23 tests, 0 failures.
 - `npm run ui-smoke --prefix WindowsTray` passed after Chinese right-click status summary updates.
 - `npm run smoke --prefix WindowsTray` passed after Chinese right-click status summary updates.
+- `npm run check --prefix WindowsTray` passed after startup/update-check settings.
+- `npm test --prefix WindowsTray` passed after startup/update-check settings: 28 tests, 0 failures.
+- `npm run ui-smoke --prefix WindowsTray` passed after startup/update-check settings.
+- `npm run smoke --prefix WindowsTray` passed after startup/update-check settings.
 
 Known Blockers:
 - Native SwiftPM build/test on this Windows Swift 6.3.2 toolchain fails with `error: fatalError`; direct `swiftc` compilation works. Do not claim `swift test` passes on Windows.
 - The Windows tray runtime has been smoke-tested and manually inspected, but it is still an experimental Electron host rather than a packaged Windows release.
 - The Windows CLI executable currently depends on the installed Swift runtime being present; tray startup prepends common Swift runtime paths for development.
-- Several macOS app features are not yet ported: update checking, complete side panels, packaged installer/startup integration, app signing, and full Windows UI parity. Basic Windows tray settings now exist, but system-level settings such as startup integration are still placeholders.
+- Several macOS app features are not yet ported: complete side panels, packaged installer/startup integration, app signing, and full Windows UI parity. Basic Windows tray settings now exist, including startup integration and update checking.
 
 ## History
 
@@ -93,3 +98,4 @@ Known Blockers:
 - 2026-07-03: Added opt-in Windows tray notification alerts with local de-duplication.
 - 2026-07-03: Added right-click maintenance actions and tightened reset credit detail row layout.
 - 2026-07-03: Localized Windows right-click tray status summary lines to Chinese.
+- 2026-07-03: Added Windows tray startup and update-check settings.

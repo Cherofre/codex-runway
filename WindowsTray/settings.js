@@ -7,6 +7,8 @@ const defaultSettings = Object.freeze({
   showApiEquivalent: true,
   showRecentSessions: true,
   notificationsEnabled: false,
+  startAtLogin: false,
+  autoCheckUpdates: false,
 });
 
 function normalizeBoolean(value, fallback) {
@@ -29,6 +31,8 @@ function normalizeSettings(input = {}) {
     showApiEquivalent: normalizeBoolean(source.showApiEquivalent, defaultSettings.showApiEquivalent),
     showRecentSessions: normalizeBoolean(source.showRecentSessions, defaultSettings.showRecentSessions),
     notificationsEnabled: normalizeBoolean(source.notificationsEnabled, defaultSettings.notificationsEnabled),
+    startAtLogin: normalizeBoolean(source.startAtLogin, defaultSettings.startAtLogin),
+    autoCheckUpdates: normalizeBoolean(source.autoCheckUpdates, defaultSettings.autoCheckUpdates),
   };
 }
 

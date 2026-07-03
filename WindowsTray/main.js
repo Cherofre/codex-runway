@@ -24,6 +24,8 @@ const {
   syncCodexSessions,
 } = require("./maintenance");
 const { defaultSettings, mergeSettings } = require("./settings");
+const { buildLoginItemSettings } = require("./startup");
+const { checkForUpdates } = require("./updates");
 
 const execFileAsync = promisify(execFile);
 const repoRoot = path.resolve(__dirname, "..");
@@ -43,6 +45,7 @@ let settingsPath = null;
 let alertState = normalizeAlertState();
 let alertStatePath = null;
 let maintenanceBusy = false;
+let updateCheckBusy = false;
 
 function iconPath() {
   return path.join(repoRoot, "Resources", "AppIcon.png");
@@ -145,6 +148,30 @@ function saveSettings() {
   if (!settingsPath) settingsPath = path.join(app.getPath("userData"), "settings.json");
   fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
   fs.writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
+}
+
+function loginItemSettings(openAtLogin) {
+  return buildLoginItemSettings({
+    openAtLogin,
+    execPath: process.execPath,
+    appPath: app.getAppPath(),
+    isPackaged: app.isPackaged,
+  });
+}
+
+function applyStartupSetting(openAtLogin) {
+  if (process.platform !== "win32" || smokeMode || uiSmokeMode) return;
+  try {
+    app.setLoginItemSettings(loginItemSettings(openAtLogin));
+  } catch (error) {
+    latestSnapshot = {
+      ...(latestSnapshot || fallbackSnapshot()),
+      errors: [
+        ...((latestSnapshot && latestSnapshot.errors) || []),
+        { area: "settings.startup", message: error.message },
+      ],
+    };
+  }
 }
 
 function loadAlertState() {
@@ -274,11 +301,41 @@ function runSessionSyncFromMenu() {
 
 function updateSettings(patch) {
   settings = mergeSettings(settings, patch);
+  if (patch && Object.hasOwn(patch, "startAtLogin")) {
+    applyStartupSetting(settings.startAtLogin);
+  }
   saveSettings();
   scheduleRefresh();
   updateMenu({ loading: isRefreshing });
   broadcastStatus({ loading: isRefreshing });
   return { ...settings };
+}
+
+async function runUpdateCheck({ silent = false } = {}) {
+  if (updateCheckBusy) return { status: "busy", summary: "正在检查更新", detail: "" };
+  updateCheckBusy = true;
+  updateMenu({ loading: isRefreshing });
+  try {
+    const result = await checkForUpdates({ currentVersion: app.getVersion() });
+    if (!silent || result.status === "newer") {
+      const buttons = result.status === "newer" ? ["打开发布页", "稍后"] : ["确定"];
+      const answer = await showDialog({
+        type: result.status === "newer" ? "info" : result.status === "error" ? "error" : "none",
+        buttons,
+        defaultId: 0,
+        cancelId: result.status === "newer" ? 1 : 0,
+        message: result.summary,
+        detail: result.detail || "",
+      });
+      if (result.status === "newer" && answer.response === 0 && result.url) {
+        shell.openExternal(result.url);
+      }
+    }
+    return result;
+  } finally {
+    updateCheckBusy = false;
+    updateMenu({ loading: isRefreshing });
+  }
 }
 
 function scheduleRefresh() {
@@ -369,6 +426,8 @@ async function runUiSmoke() {
           showApiEquivalent: true,
           showRecentSessions: true,
           notificationsEnabled: false,
+          startAtLogin: false,
+          autoCheckUpdates: false,
         },
         snapshot: {
           generatedAt: "2026-07-02T14:36:00Z",
@@ -425,6 +484,8 @@ async function runUiSmoke() {
           showApiEquivalent: true,
           showRecentSessions: true,
           notificationsEnabled: false,
+          startAtLogin: false,
+          autoCheckUpdates: false,
         },
         snapshot: {
           generatedAt: "2026-07-02T14:37:00Z",
@@ -450,7 +511,7 @@ async function runUiSmoke() {
   `, true);
   if (result.title !== "设置") throw new Error(`settings title mismatch: ${result.title}`);
   if (result.selectValue !== "10") throw new Error(`refresh interval did not update: ${result.selectValue}`);
-  if (result.toggleCount < 5) throw new Error(`expected 5 setting toggles, got ${result.toggleCount}`);
+  if (result.toggleCount < 7) throw new Error(`expected 7 setting toggles, got ${result.toggleCount}`);
   if (result.quotaHidden !== true) throw new Error("display toggle did not hide quota section");
   if (!result.homeVisibleAfterToggle || !result.detailHiddenAfterToggle) {
     throw new Error("settings button did not toggle back to home");
@@ -546,6 +607,11 @@ function updateMenu({ loading = false } = {}) {
       enabled: maintenanceEnabled,
       click: () => runMaintenanceAction("重启 VSCode", () => restartVSCode()),
     },
+    {
+      label: updateCheckBusy ? "正在检查更新..." : "检查更新",
+      enabled: !updateCheckBusy,
+      click: () => runUpdateCheck(),
+    },
     { type: "separator" },
     { label: "打开 Codex 文件夹", click: () => shell.openPath(path.join(os.homedir(), ".codex")) },
     { label: "退出托盘", click: () => app.quit() },
@@ -555,6 +621,7 @@ function updateMenu({ loading = false } = {}) {
 app.whenReady().then(async () => {
   app.setAppUserModelId("com.github.codex-runway.windows-tray");
   loadSettings();
+  applyStartupSetting(settings.startAtLogin);
   loadAlertState();
   tray = new Tray(trayIcon());
   if (!smokeMode || uiSmokeMode) {
@@ -574,6 +641,9 @@ app.whenReady().then(async () => {
   }
   if (previewMode) toggleStatusWindow();
   await refreshStatus();
+  if (settings.autoCheckUpdates && !smokeMode) {
+    runUpdateCheck({ silent: true });
+  }
   if (smokeMode) {
     const refreshError = latestSnapshot?.errors?.find((error) => error.area === "tray.refresh");
     if (refreshError) {
@@ -592,6 +662,7 @@ ipcMain.handle("status:get", () => currentPayload({ loading: isRefreshing }));
 ipcMain.handle("status:refresh", () => refreshStatus());
 ipcMain.handle("settings:get", () => ({ ...settings }));
 ipcMain.handle("settings:update", (_event, patch) => updateSettings(patch));
+ipcMain.handle("updates:check", () => runUpdateCheck());
 ipcMain.handle("app:openCodexFolder", () => shell.openPath(path.join(os.homedir(), ".codex")));
 ipcMain.handle("app:closePanel", () => hideStatusWindow());
 

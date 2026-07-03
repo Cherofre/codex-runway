@@ -36,6 +36,8 @@ const defaultSettings = {
   showApiEquivalent: true,
   showRecentSessions: true,
   notificationsEnabled: false,
+  startAtLogin: false,
+  autoCheckUpdates: false,
 };
 
 let latestPayload = null;
@@ -202,6 +204,12 @@ function normalizeSettings(input = {}) {
     notificationsEnabled: typeof source.notificationsEnabled === "boolean"
       ? source.notificationsEnabled
       : defaultSettings.notificationsEnabled,
+    startAtLogin: typeof source.startAtLogin === "boolean"
+      ? source.startAtLogin
+      : defaultSettings.startAtLogin,
+    autoCheckUpdates: typeof source.autoCheckUpdates === "boolean"
+      ? source.autoCheckUpdates
+      : defaultSettings.autoCheckUpdates,
   };
 }
 
@@ -223,6 +231,14 @@ async function applySettingsPatch(patch) {
     if (currentView === "settings") renderSettingsDetail();
   } catch (error) {
     renderErrors([{ area: "settings.save", message: error.message }]);
+  }
+}
+
+async function requestUpdateCheck() {
+  try {
+    await window.runway.checkForUpdates();
+  } catch (error) {
+    renderErrors([{ area: "updates.check", message: error.message }]);
   }
 }
 
@@ -349,11 +365,16 @@ function renderSettingsDetail() {
     ]),
     settingsGroup("系统", [
       settingRow("关闭按钮", "隐藏面板，托盘仍保持运行", statusPill("已启用")),
-      settingRow("开机启动", "需要打包安装后接入", statusPill("未移植"), { disabled: true }),
+      settingRow("开机启动", "登录 Windows 后自动启动托盘", toggleControl(settings.startAtLogin, (checked) => {
+        applySettingsPatch({ startAtLogin: checked });
+      })),
       settingRow("通知提醒", "配额阈值和重置临期", toggleControl(settings.notificationsEnabled, (checked) => {
         applySettingsPatch({ notificationsEnabled: checked });
       })),
-      settingRow("自动更新", "Windows 发布流程待补", statusPill("未移植"), { disabled: true }),
+      settingRow("自动检查更新", "启动托盘时检查 GitHub Release", toggleControl(settings.autoCheckUpdates, (checked) => {
+        applySettingsPatch({ autoCheckUpdates: checked });
+      })),
+      settingRow("检查更新", "手动查看可用发布版本", actionButton("检查", requestUpdateCheck)),
     ]),
     detailNote("设置保存在 Electron userData 目录，不会写入 Codex 会话文件。"));
 }
@@ -399,6 +420,14 @@ function statusPill(text) {
   const pill = textNode("span", text);
   pill.className = "status-pill";
   return pill;
+}
+
+function actionButton(text, onClick) {
+  const button = textNode("button", text);
+  button.className = "action-button";
+  button.type = "button";
+  button.addEventListener("click", onClick);
+  return button;
 }
 
 function resetSummary(reset, snapshot) {

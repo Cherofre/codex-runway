@@ -1,6 +1,6 @@
 ## Now
 
-1. Continue Windows parity work from the current popup panel: update checking, complete detail side panels, and system-level settings such as startup integration are still missing.
+1. Continue Windows parity work from the current popup panel: complete detail side panels and packaged Windows distribution are still missing.
 2. Decide whether to keep `Scripts\Build-WindowsCLI.ps1` as the Windows development path or continue investigating SwiftPM's `error: fatalError`.
 3. If investigating SwiftPM, start from the reproduced command: `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v`.
 4. Re-test on macOS before merging, because `Package.swift` now gates the AppKit app and dependencies under `#if os(macOS)`.
@@ -23,6 +23,7 @@ Do not redo:
 - The popup close controls now hide the panel only; full quit is in the tray context menu.
 - Reset credit row details are available through `resetCredits.credits[]` in the CLI JSON.
 - Basic Windows tray settings are implemented and stored under Electron `userData`; unsupported system settings are shown as not-yet-ported status rows.
+- Windows tray startup and update-check settings are implemented. Update checking opens GitHub Releases when a newer tag is found; it does not silently install updates.
 - Notification alerts are implemented as an opt-in setting and de-duplicated through Electron `userData/alerts.json`.
 - Right-click tray maintenance actions are implemented. Session sync/repair asks for confirmation, writes backups under `~/.codex/backups_state/provider-sync` when it changes files, and was not manually clicked during automated verification.
 

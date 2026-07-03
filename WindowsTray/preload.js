@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("runway", {
   refresh: () => ipcRenderer.invoke("status:refresh"),
   getSettings: () => ipcRenderer.invoke("settings:get"),
   updateSettings: (patch) => ipcRenderer.invoke("settings:update", patch),
+  checkForUpdates: () => ipcRenderer.invoke("updates:check"),
   openCodexFolder: () => ipcRenderer.invoke("app:openCodexFolder"),
   closePanel: () => ipcRenderer.invoke("app:closePanel"),
   onStatusUpdated: (callback) => {
