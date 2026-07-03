@@ -27,11 +27,12 @@ Do not redo:
 - Windows tray startup and update-check settings are implemented. Update checking opens GitHub Releases when a newer tag is found; it does not silently install updates.
 - Notification alerts are implemented as an opt-in setting and de-duplicated through Electron `userData/alerts.json`.
 - Right-click tray maintenance actions are implemented. Session sync/repair asks for confirmation, writes backups under `~/.codex/backups_state/provider-sync` when it changes files, and was not manually clicked during automated verification.
-- Quota and recent-session homepage entries now open Chinese detail pages with back navigation and UI smoke coverage.
+- Quota, reset, API, and recent-session entries now open Chinese detail pages with information that is not duplicated from the homepage; UI smoke asserts richer detail metadata.
 - A portable unsigned Windows package is implemented by `Scripts\Package-WindowsTray.ps1`; it bundles the tray app, `CodexRunwayCLI.exe`, app icon, and Swift runtime DLLs.
 
 Verify next:
 - `npm run preview --prefix WindowsTray` for persistent popup UI behavior.
+- Manually inspect that each detail page is visually useful: recent sessions should show summary metrics, exact timestamps, and full IDs; quota should show per-window cards; API should show exact window/explainer rows; reset should show full per-credit metadata.
 - Manually verify right-click tray actions when acceptable: `同步/修复会话`, `重启 Codex`, and `重启 VSCode`.
 - `npm run ui-smoke --prefix WindowsTray` for renderer settings, quota/reset/recent detail pages, and friendly error smoke coverage.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File Scripts\Package-WindowsTray.ps1` followed by `.build\windows-tray-portable\Codex Runway\Codex Runway.exe --smoke` with `Start-Process -Wait` for package verification.

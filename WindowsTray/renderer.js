@@ -326,7 +326,7 @@ function renderResetDetail(snapshot) {
 function renderApiDetail(snapshot) {
   const api = snapshot.apiEquivalent;
   elements.detailTitle.textContent = "API 等价成本";
-  elements.detailSubtitle.textContent = api ? `${api.source} · ${api.confidence}` : "数据暂不可用";
+  elements.detailSubtitle.textContent = api ? `${sourceLabel(api.source)} · ${confidenceLabel(api.confidence)}` : "数据暂不可用";
   elements.detailContent.replaceChildren();
   if (!api) {
     elements.detailContent.append(emptyState("API 等价成本暂不可用"));
@@ -337,14 +337,15 @@ function renderApiDetail(snapshot) {
       ["估算成本", formatMoney(api.estimatedUSD)],
       ["Tokens", formatTokens(api.totalTokens)],
       ["计价版本", api.pricingVersion || "--"],
-      ["来源", api.source || "--"],
+      ["置信度", confidenceLabel(api.confidence)],
     ]),
     detailTable([
-      ["置信度", api.confidence || "--"],
-      ["窗口开始", fullDate(api.windowStart)],
-      ["窗口结束", fullDate(api.windowEnd)],
-      ["计算时间", fullDate(api.calculatedAt)],
+      ["来源", sourceLabel(api.source)],
+      ["窗口开始", exactDate(api.windowStart)],
+      ["窗口结束", exactDate(api.windowEnd)],
+      ["计算时间", exactDate(api.calculatedAt)],
     ]),
+    apiExplainer(api),
     detailNote("这里按本机会话 JSONL 统计 API 等价成本，不上传会话内容。"));
 }
 
@@ -367,10 +368,14 @@ function renderQuotaDetail(snapshot) {
       ["每周剩余", quota.secondary ? `${clampPercent(quota.secondary.remainingPercent)}%` : "--"],
       ["窗口数量", String(windows.length)],
     ]),
+    quotaWindowList(windows),
     detailTable(windows.flatMap(({ label, window }) => [
       [`${label} 剩余`, `${clampPercent(window.remainingPercent)}%`],
       [`${label} 已用`, `${100 - clampPercent(window.remainingPercent)}%`],
-      [`${label} 重置`, window.resetsAt ? fullDate(window.resetsAt) : resetLabel(window.secondsUntilReset)],
+      [`${label} 精确重置`, window.resetsAt ? exactDate(window.resetsAt) : resetLabel(window.secondsUntilReset)],
+    ]).concat([
+      ["Credits balance", quota.creditsBalance == null ? "--" : String(quota.creditsBalance)],
+      ["更新时间", exactDate(quota.updatedAt)],
     ])),
     detailNote("配额详情来自 Codex 远端状态，只在本机托盘中展示。"));
 }
@@ -379,7 +384,7 @@ function renderRecentDetail(snapshot) {
   const sessions = snapshot.recentSessions || [];
   elements.detailTitle.textContent = "最近会话";
   elements.detailSubtitle.textContent = snapshot.sessions
-    ? `${snapshot.sessions.plannedEntries} 已索引 · ${snapshot.sessions.missingCount} 缺失`
+    ? `${snapshot.sessions.plannedEntries} 已索引 · ${snapshot.sessions.missingCount} 缺失 · ${snapshot.sessions.orphanCount} 孤立`
     : `${sessions.length} 条`;
   elements.detailContent.replaceChildren();
   if (sessions.length === 0) {
@@ -393,6 +398,7 @@ function renderRecentDetail(snapshot) {
     list.append(sessionDetailRow(item));
   }
   elements.detailContent.append(
+    recentSummary(snapshot, sessions),
     list,
     detailNote("最近会话按本地 Codex JSONL 的更新时间排序，不上传会话内容。"));
 }
@@ -566,6 +572,50 @@ function quotaWindows(quota) {
   ].filter(Boolean);
 }
 
+function quotaWindowList(windows) {
+  const list = document.createElement("div");
+  list.className = "quota-window-list";
+  for (const { label, window } of windows) {
+    const remaining = clampPercent(window.remainingPercent);
+    const card = document.createElement("article");
+    card.className = "quota-window-card";
+
+    const header = document.createElement("div");
+    header.className = "quota-window-header";
+    header.append(textNode("strong", label), textNode("span", `${remaining}% 剩余`));
+
+    const track = document.createElement("div");
+    track.className = "progress-track";
+    const fill = document.createElement("div");
+    fill.className = "progress-fill";
+    fill.style.setProperty("--value", `${remaining}%`);
+    track.append(fill);
+
+    const facts = document.createElement("div");
+    facts.className = "quota-window-facts";
+    facts.append(
+      summaryFact("已用", `${100 - remaining}%`),
+      summaryFact("相对重置", window.secondsUntilReset == null ? "--" : compactDuration(window.secondsUntilReset)),
+      summaryFact("精确重置", window.resetsAt ? exactDate(window.resetsAt) : "--"));
+
+    card.append(header, track, facts);
+    list.append(card);
+  }
+  return list;
+}
+
+function recentSummary(snapshot, sessions) {
+  const totalTokens = sessions.reduce((sum, item) => sum + (Number(item.totalTokens) || 0), 0);
+  const totalCost = sessions.reduce((sum, item) => sum + (Number(item.estimatedUSD) || 0), 0);
+  const summary = snapshot.sessions || {};
+  return metricGrid([
+    ["详情条数", String(sessions.length)],
+    ["列表 Tokens", formatTokens(totalTokens)],
+    ["列表成本", formatMoney(totalCost)],
+    ["缺失/孤立", `${summary.missingCount ?? "--"} / ${summary.orphanCount ?? "--"}`],
+  ]);
+}
+
 function sessionDetailRow(item) {
   const row = document.createElement("article");
   row.className = "session-detail-row";
@@ -573,17 +623,45 @@ function sessionDetailRow(item) {
   const main = document.createElement("div");
   main.className = "session-detail-main";
   const title = textNode("strong", item.title || item.projectName || "Untitled");
-  const meta = textNode(
-    "small",
-    `${item.projectName || "local"} · ${formatTokens(item.totalTokens)} Tokens · ${relativeTime(item.updatedAt)}`);
-  main.append(title, meta);
+  const metaGrid = document.createElement("div");
+  metaGrid.className = "session-detail-meta-grid";
+  metaGrid.append(
+    detailChip("项目", item.projectName || "local"),
+    detailChip("更新时间", exactDate(item.updatedAt)),
+    detailChip("Tokens", `${formatTokens(item.totalTokens)} (${Number(item.totalTokens || 0).toLocaleString("en-US")})`),
+    detailChip("ID", item.id || "--"));
+  main.append(title, metaGrid);
 
   const side = document.createElement("div");
   side.className = "session-detail-side";
-  side.append(textNode("strong", formatMoney(item.estimatedUSD)), textNode("small", item.state || "recent"));
+  side.append(textNode("strong", formatMoney(item.estimatedUSD)), textNode("small", stateLabel(item.state)));
 
   row.append(main, side);
   return row;
+}
+
+function apiExplainer(api) {
+  const box = document.createElement("div");
+  box.className = "api-explainer";
+  const rows = [
+    ["统计范围", `${exactDate(api.windowStart)} 至 ${exactDate(api.windowEnd)}`],
+    ["扫描来源", sourceLabel(api.source)],
+    ["估算方式", `${confidenceLabel(api.confidence)} · 未知模型会回退到等价成本`],
+  ];
+  for (const [label, value] of rows) {
+    const row = document.createElement("div");
+    row.className = "api-explainer-row";
+    row.append(textNode("span", label), textNode("strong", value));
+    box.append(row);
+  }
+  return box;
+}
+
+function detailChip(label, value) {
+  const chip = document.createElement("div");
+  chip.className = "detail-chip";
+  chip.append(textNode("span", label), textNode("strong", value || "--"));
+  return chip;
 }
 
 function resetCreditList(credits) {
@@ -605,7 +683,13 @@ function resetCreditList(credits) {
     const expires = credit.expiresAt ? fullDate(credit.expiresAt) : "无到期时间";
     const meta = textNode("div", `${expires}${id}`);
     meta.className = "reset-credit-meta";
-    main.append(title, meta);
+    const extra = document.createElement("div");
+    extra.className = "reset-credit-extra";
+    extra.append(
+      textNode("span", `创建 ${credit.createdAt ? exactDate(credit.createdAt) : "--"}`),
+      textNode("span", `到期 ${credit.expiresAt ? exactDate(credit.expiresAt) : "--"}`),
+      textNode("span", `ID ${credit.id || "--"}`));
+    main.append(title, meta, extra);
 
     const side = document.createElement("div");
     side.className = "reset-credit-side";
@@ -708,9 +792,41 @@ function fullDate(value) {
   });
 }
 
+function exactDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  const pad = (number) => String(number).padStart(2, "0");
+  return [
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+  ].join(" ");
+}
+
 function shortId(value) {
   if (!value || value.length <= 10) return value || "";
   return `${value.slice(0, 6)}…${value.slice(-4)}`;
+}
+
+function sourceLabel(value) {
+  if (value === "localSessions") return "本地会话";
+  if (value === "remoteUsage") return "远端用量";
+  if (value === "cache") return "本地缓存";
+  return value || "--";
+}
+
+function confidenceLabel(value) {
+  if (value === "exact") return "精确";
+  if (value === "estimated") return "估算";
+  if (value === "partial") return "部分估算";
+  return value || "--";
+}
+
+function stateLabel(value) {
+  if (value === "recent") return "最近";
+  if (value === "missing") return "缺失";
+  if (value === "orphan") return "孤立";
+  if (value === "archived") return "归档";
+  return value || "--";
 }
 
 function riskLabel(risk, status) {

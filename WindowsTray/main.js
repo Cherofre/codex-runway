@@ -435,7 +435,13 @@ async function runUiSmoke() {
           quota: {
             plan: "plus",
             primary: { remainingPercent: 92, secondsUntilReset: 3600, resetsAt: "2026-07-02T15:36:00Z" },
-            additional: [],
+            secondary: { remainingPercent: 41, secondsUntilReset: 345600, resetsAt: "2026-07-06T00:00:00Z" },
+            additional: [{
+              name: "GPT-5.3-Codex-Spark",
+              window: { remainingPercent: 100, secondsUntilReset: 7200, resetsAt: "2026-07-02T16:36:00Z" },
+            }],
+            creditsBalance: 12.5,
+            updatedAt: "2026-07-02T14:32:00Z",
           },
           resetCredits: {
             availableCount: 4,
@@ -460,17 +466,43 @@ async function runUiSmoke() {
               },
             ],
           },
-          sessions: null,
-          recentSessions: [{
-            id: "s1",
-            title: "Windows tray polish",
-            projectName: "codex-runway",
-            updatedAt: "2026-07-02T14:30:00Z",
-            state: "recent",
-            totalTokens: 12345,
-            estimatedUSD: 1.2345,
-          }],
-          apiEquivalent: null,
+          sessions: {
+            plannedEntries: 325,
+            missingCount: 163,
+            orphanCount: 88,
+            duplicateCount: 2,
+            staleTitleCount: 7,
+          },
+          recentSessions: [
+            {
+              id: "session_windows_tray_polish_0001",
+              title: "Windows tray polish",
+              projectName: "codex-runway",
+              updatedAt: "2026-07-02T14:30:00Z",
+              state: "recent",
+              totalTokens: 12345,
+              estimatedUSD: 1.2345,
+            },
+            {
+              id: "session_settings_detail_0002",
+              title: "Settings detail polish",
+              projectName: "codex-runway",
+              updatedAt: "2026-07-01T10:15:00Z",
+              state: "missing",
+              totalTokens: 980000,
+              estimatedUSD: 45.67,
+            },
+          ],
+          apiEquivalent: {
+            source: "localSessions",
+            confidence: "estimated",
+            totalTokens: 992345,
+            estimatedUSD: 46.9045,
+            pricingVersion: "2026-06-29",
+            calculatedAt: "2026-07-02T14:35:00Z",
+            windowStart: "2026-06-29T00:00:00Z",
+            windowEnd: "2026-07-02T14:35:00Z",
+          },
           errors: [],
         },
       });
@@ -480,6 +512,8 @@ async function runUiSmoke() {
       const quotaDetailResult = {
         quotaDetailTitle: document.getElementById("detailTitle").textContent,
         quotaDetailRows: document.querySelectorAll("#detailContent .detail-row").length,
+        quotaWindowCards: document.querySelectorAll("#detailContent .quota-window-card").length,
+        quotaCreditBalance: document.getElementById("detailContent").textContent.includes("12.5"),
       };
       document.getElementById("backButton").click();
       await delay(80);
@@ -488,6 +522,9 @@ async function runUiSmoke() {
       const recentDetailResult = {
         recentDetailTitle: document.getElementById("detailTitle").textContent,
         recentDetailRows: document.querySelectorAll("#detailContent .session-detail-row").length,
+        recentMetricCards: document.querySelectorAll("#detailContent .metric-card").length,
+        recentExactTime: document.getElementById("detailContent").textContent.includes("2026"),
+        recentFullId: document.getElementById("detailContent").textContent.includes("session_windows_tray_polish_0001"),
       };
       document.getElementById("backButton").click();
       await delay(80);
@@ -498,6 +535,16 @@ async function runUiSmoke() {
         resetMetricGridCount: document.querySelectorAll("#detailContent .metric-grid").length,
         resetRowCount: document.querySelectorAll("#detailContent .reset-credit-row").length,
         resetFirstSideText: document.querySelector("#detailContent .reset-credit-side")?.textContent || "",
+        resetCreatedRows: document.querySelectorAll("#detailContent .reset-credit-extra").length,
+      };
+      document.getElementById("backButton").click();
+      await delay(80);
+      document.getElementById("apiCard").click();
+      await delay(80);
+      const apiResult = {
+        apiMetricCards: document.querySelectorAll("#detailContent .metric-card").length,
+        apiExplainerRows: document.querySelectorAll("#detailContent .api-explainer-row").length,
+        apiWindowText: document.getElementById("detailContent").textContent.includes("2026-06-29"),
       };
       render({
         loading: false,
@@ -531,6 +578,7 @@ async function runUiSmoke() {
         ...quotaDetailResult,
         ...recentDetailResult,
         ...resetResult,
+        ...apiResult,
         errorPanelText: document.getElementById("errorPanel").textContent,
       };
     })();
@@ -548,13 +596,22 @@ async function runUiSmoke() {
   if (!result.resetHasSummary) throw new Error("reset detail did not render compact summary");
   if (result.quotaDetailTitle !== "配额详情") throw new Error(`quota detail title mismatch: ${result.quotaDetailTitle}`);
   if (result.quotaDetailRows < 2) throw new Error(`quota detail rows missing: ${result.quotaDetailRows}`);
+  if (result.quotaWindowCards < 3) throw new Error(`quota window cards missing: ${result.quotaWindowCards}`);
+  if (!result.quotaCreditBalance) throw new Error("quota detail did not expose credits balance");
   if (result.recentDetailTitle !== "最近会话") throw new Error(`recent detail title mismatch: ${result.recentDetailTitle}`);
   if (result.recentDetailRows < 1) throw new Error(`recent detail rows missing: ${result.recentDetailRows}`);
+  if (result.recentMetricCards < 4) throw new Error(`recent summary metrics missing: ${result.recentMetricCards}`);
+  if (!result.recentExactTime) throw new Error("recent detail did not expose exact timestamps");
+  if (!result.recentFullId) throw new Error("recent detail did not expose full session ids");
   if (result.resetMetricGridCount !== 0) throw new Error("reset detail still renders metric cards");
   if (result.resetRowCount !== 2) throw new Error(`reset detail row count mismatch: ${result.resetRowCount}`);
+  if (result.resetCreatedRows < 2) throw new Error(`reset detail missing per-credit extra rows: ${result.resetCreatedRows}`);
   if (!result.resetFirstSideText.startsWith("15天")) {
     throw new Error(`reset status order is not time-first: ${result.resetFirstSideText}`);
   }
+  if (result.apiMetricCards < 4) throw new Error(`api metric cards missing: ${result.apiMetricCards}`);
+  if (result.apiExplainerRows < 3) throw new Error(`api explainer rows missing: ${result.apiExplainerRows}`);
+  if (!result.apiWindowText) throw new Error("api detail did not expose exact window dates");
   if (!result.errorPanelText.includes("配额：请求超时，请稍后刷新")) {
     throw new Error(`timeout error text is not friendly: ${result.errorPanelText}`);
   }

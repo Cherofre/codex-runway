@@ -32,6 +32,7 @@ Progress:
 - WindowsTray settings now include real open-at-login and automatic update-check toggles; update checks use GitHub Releases and are also available from the tray menu.
 - WindowsTray popup now has clickable quota and recent-session entries with Chinese detail pages and back navigation.
 - Added `Scripts\Package-WindowsTray.ps1`, which builds a dedicated package CLI, copies Electron, the tray app, app icon, bundled CLI, and Swift runtime DLLs into `.build\windows-tray-portable\Codex Runway`, and creates `.build\CodexRunway-Windows-Portable.zip`.
+- WindowsTray detail pages now show information that is not present on the homepage: quota window cards and credit balance, reset credit full metadata, API exact window/explainer rows, and recent-session summary metrics with full IDs and exact timestamps.
 
 Verification Evidence:
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` failed with `error: fatalError` after printing the `CodexRunwayCore` `swiftc` command and no Swift source diagnostics.
@@ -92,6 +93,13 @@ Verification Evidence:
 - `npm test --prefix WindowsTray` passed after portable package updates: 28 tests, 0 failures.
 - `npm run ui-smoke --prefix WindowsTray` passed after portable package updates.
 - `npm run smoke --prefix WindowsTray` passed after portable package updates.
+- `npm run ui-smoke --prefix WindowsTray` first failed with `quota window cards missing: 0`, proving the new detail-page assertions caught the repeated-homepage problem.
+- `npm run check --prefix WindowsTray` passed after richer detail-page updates.
+- `npm run ui-smoke --prefix WindowsTray` passed after richer detail-page updates.
+- `npm test --prefix WindowsTray` passed after richer detail-page updates: 28 tests, 0 failures.
+- `npm run smoke --prefix WindowsTray` passed after richer detail-page updates.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File Scripts\Package-WindowsTray.ps1` passed after richer detail-page updates and regenerated the portable zip.
+- Packaged smoke verification passed again with `Start-Process -Wait` against `.build\windows-tray-portable\Codex Runway\Codex Runway.exe --smoke`.
 
 Known Blockers:
 - Native SwiftPM build/test on this Windows Swift 6.3.2 toolchain fails with `error: fatalError`; direct `swiftc` compilation works. Do not claim `swift test` passes on Windows.
@@ -115,3 +123,4 @@ Known Blockers:
 - 2026-07-03: Added Windows tray startup and update-check settings.
 - 2026-07-03: Added quota and recent-session detail pages to the Windows popup.
 - 2026-07-03: Added a portable Windows tray package script and verified the packaged app smoke path.
+- 2026-07-03: Expanded Windows detail pages so clicking into a section exposes additional metadata instead of repeating homepage cards.
