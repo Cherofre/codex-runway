@@ -76,6 +76,7 @@ function render(payload) {
   if (currentView === "api") renderApiDetail(snapshot);
   if (currentView === "quota") renderQuotaDetail(snapshot);
   if (currentView === "recent") renderRecentDetail(snapshot);
+  if (currentView === "diagnostics") renderDiagnosticsDetail(snapshot);
   if (currentView === "settings") renderSettingsDetail();
 }
 
@@ -193,12 +194,15 @@ function renderErrors(errors) {
   if (!errors.length) {
     elements.errorPanel.hidden = true;
     elements.errorPanel.textContent = "";
+    elements.errorPanel.disabled = true;
     return;
   }
   elements.errorPanel.hidden = false;
+  elements.errorPanel.disabled = false;
+  elements.errorPanel.title = "查看诊断与恢复";
   const formatErrorLine = window.runwayErrors?.formatErrorLine ||
     ((error) => `${error.area}: ${error.message}`);
-  elements.errorPanel.textContent = errors.slice(0, 2).map(formatErrorLine).join(" · ");
+  elements.errorPanel.textContent = `${errors.slice(0, 2).map(formatErrorLine).join(" · ")} · 点击查看诊断`;
 }
 
 function normalizeSettings(input = {}) {
@@ -320,6 +324,32 @@ async function requestFeedback() {
   }
 }
 
+async function requestDiagnosticsRefresh() {
+  try {
+    elements.refreshButton.classList.add("loading");
+    const payload = await window.runway.refresh();
+    render(payload);
+  } catch (error) {
+    renderErrors([{ area: "diagnostics.refresh", message: error.message }]);
+  }
+}
+
+async function requestCopyDiagnostics() {
+  const buildDiagnosticsText = window.runwayDiagnostics?.buildDiagnosticsText;
+  if (typeof buildDiagnosticsText !== "function") return;
+  const text = buildDiagnosticsText({
+    appInfo,
+    settings,
+    snapshot: latestPayload?.snapshot || {},
+  });
+  try {
+    await window.runway.copyDiagnostics(text);
+    elements.detailSubtitle.textContent = "诊断信息已复制到剪贴板";
+  } catch (error) {
+    renderErrors([{ area: "diagnostics.copy", message: error.message }]);
+  }
+}
+
 function showHome() {
   currentView = "home";
   elements.detailView.hidden = true;
@@ -357,6 +387,14 @@ function showRecentDetail() {
   elements.detailView.hidden = false;
   updateViewControls();
   renderRecentDetail(latestPayload?.snapshot || {});
+}
+
+function showDiagnosticsDetail() {
+  currentView = "diagnostics";
+  elements.homeView.hidden = true;
+  elements.detailView.hidden = false;
+  updateViewControls();
+  renderDiagnosticsDetail(latestPayload?.snapshot || {});
 }
 
 function showSettings() {
@@ -473,6 +511,62 @@ function renderRecentDetail(snapshot) {
     recentSummary(snapshot, sessions),
     list,
     detailNote("最近会话按本地 Codex JSONL 的更新时间排序，不上传会话内容。"));
+}
+
+function renderDiagnosticsDetail(snapshot) {
+  const errors = Array.isArray(snapshot.errors) ? snapshot.errors : [];
+  const retryableCount = errors.filter((error) => window.runwayErrors?.isRetryableError?.(error)).length;
+  elements.detailTitle.textContent = "诊断与恢复";
+  elements.detailSubtitle.textContent = errors.length
+    ? `${errors.length} 个错误 · ${retryableCount} 个可重试`
+    : "当前没有错误";
+  elements.detailContent.replaceChildren();
+
+  elements.detailContent.append(
+    diagnosticActions(),
+    detailTable([
+      ["状态时间", exactDate(snapshot.generatedAt)],
+      ["UserData", appInfo.userDataPath || "--"],
+      ["状态 JSON", appInfo.statusExportPath || "--"],
+      ["刷新间隔", `${settings.refreshIntervalMinutes} 分钟`],
+      ["导出状态", settings.exportsStatusJSON ? "已开启" : "未开启"],
+    ]),
+    diagnosticErrorList(errors),
+    detailNote("复制诊断信息不包含 token、refresh token、API key 或原始会话内容。"));
+}
+
+function diagnosticActions() {
+  const actions = document.createElement("div");
+  actions.className = "diagnostic-actions";
+  actions.append(
+    actionButton("立即刷新", requestDiagnosticsRefresh),
+    actionButton("复制诊断", requestCopyDiagnostics),
+    actionButton("Codex 文件夹", () => window.runway.openCodexFolder()),
+    actionButton("状态目录", requestStatusFolder));
+  return actions;
+}
+
+function diagnosticErrorList(errors) {
+  const list = document.createElement("div");
+  list.className = "diagnostic-error-list";
+  if (!errors.length) {
+    list.append(emptyState("当前没有错误"));
+    return list;
+  }
+
+  const formatErrorLine = window.runwayErrors?.formatErrorLine ||
+    ((error) => `${error.area}: ${error.message}`);
+  for (const error of errors) {
+    const row = document.createElement("article");
+    row.className = "diagnostic-error-row";
+    row.append(
+      textNode("strong", formatErrorLine(error)),
+      textNode(
+        "small",
+        `area ${error.area || "--"} · code ${error.code || "--"} · retryable ${Boolean(error.isRetryable)}`));
+    list.append(row);
+  }
+  return list;
 }
 
 function renderSettingsDetail() {
@@ -982,6 +1076,7 @@ elements.settingsButton.addEventListener("click", toggleSettings);
 elements.backButton.addEventListener("click", showHome);
 elements.resetCard.addEventListener("click", showResetDetail);
 elements.apiCard.addEventListener("click", showApiDetail);
+elements.errorPanel.addEventListener("click", showDiagnosticsDetail);
 
 window.runway.onStatusUpdated(render);
 window.runway.getStatus().then((payload) => {

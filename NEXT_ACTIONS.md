@@ -1,7 +1,7 @@
 ## Now
 
-1. Add a Windows tray diagnostics/recovery flow for refresh errors: retry, copy diagnostics, and open relevant local folders from the popup.
-2. Restart the local Windows tray preview after the diagnostics changes and let the user inspect the popup/menu.
+1. Regenerate the portable Windows tray package after the latest settings and diagnostics changes.
+2. Restart the local Windows tray preview after packaging and let the user inspect the popup/menu.
 3. Manually verify right-click tray actions when acceptable: `同步/修复会话`, `重启 Codex`, and `重启 VSCode`.
 4. Decide whether to keep `Scripts\Build-WindowsCLI.ps1` as the Windows development path or continue investigating SwiftPM's `error: fatalError`.
 5. If investigating SwiftPM, start from the reproduced command: `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v`.
@@ -30,6 +30,7 @@ Do not redo:
 - Right-click tray maintenance actions are implemented. Session sync/repair asks for confirmation, writes backups under `~/.codex/backups_state/provider-sync` when it changes files, and was not manually clicked during automated verification.
 - Quota, reset, API, and recent-session entries now open Chinese detail pages with information that is not duplicated from the homepage; UI smoke asserts richer detail metadata.
 - Settings include appearance selection, test notification, status JSON export/open-folder actions, GitHub/feedback/about rows, and UI smoke coverage for the main settings interactions.
+- Refresh errors now open a `诊断与恢复` detail page with immediate retry, token-safe diagnostic copy, Codex folder, and status JSON folder actions.
 - A portable unsigned Windows package is implemented by `Scripts\Package-WindowsTray.ps1`; it bundles the tray app, `CodexRunwayCLI.exe`, app icon, and Swift runtime DLLs.
 
 Verify next:

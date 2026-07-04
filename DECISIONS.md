@@ -127,6 +127,19 @@ Consequences:
 - The session sync/repair action remains explicit because it can modify JSONL and SQLite state.
 - Future work can move this repair capability behind the Swift CLI boundary if cross-platform reuse becomes important.
 
+### Decision: Copy Token-Safe Diagnostics Instead Of Full Snapshots
+
+Status: active
+
+Context: Windows refresh errors need a recovery path, but full status snapshots may contain fields that look like secrets or local session details.
+
+Decision: Make the popup error panel open a `诊断与恢复` detail page. The copy action generates a small diagnostic text with app version, paths, settings, timestamp, account ID masked, and error summaries while excluding token-like fields, `rawMessage`, and session content.
+
+Consequences:
+- Users can share useful debugging context without exposing auth tokens or raw session JSON.
+- The diagnostics page can still offer direct recovery actions such as retry and opening relevant folders.
+- Future richer diagnostics should extend the summarized text format instead of copying whole snapshots.
+
 ### Decision: Ship Windows Work As A Portable Unsigned Package First
 
 Status: active

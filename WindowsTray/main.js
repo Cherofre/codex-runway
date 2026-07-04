@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, screen, shell, Tray } = require("electron");
+const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, Notification, screen, shell, Tray } = require("electron");
 const { execFile } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -648,13 +648,26 @@ async function runUiSmoke() {
         },
       });
       await delay(80);
+      const errorPanel = document.getElementById("errorPanel");
+      const errorPanelText = errorPanel.textContent;
+      const errorPanelTag = errorPanel.tagName;
+      errorPanel.click();
+      await delay(80);
+      const diagnosticsResult = {
+        errorPanelText,
+        errorPanelTag,
+        diagnosticsTitle: document.getElementById("detailTitle").textContent,
+        diagnosticsRows: document.querySelectorAll("#detailContent .detail-row").length,
+        diagnosticsActions: document.querySelectorAll("#detailContent .diagnostic-actions .action-button").length,
+        diagnosticsSafeNote: document.getElementById("detailContent").textContent.includes("不包含 token"),
+      };
       return {
         ...settingsResult,
         ...quotaDetailResult,
         ...recentDetailResult,
         ...resetResult,
         ...apiResult,
-        errorPanelText: document.getElementById("errorPanel").textContent,
+        ...diagnosticsResult,
       };
     })();
   `, true);
@@ -697,6 +710,13 @@ async function runUiSmoke() {
   if (result.errorPanelText.includes("NSURLErrorDomain")) {
     throw new Error("timeout error leaked raw NSError text");
   }
+  if (result.errorPanelTag !== "BUTTON") throw new Error(`error panel is not clickable: ${result.errorPanelTag}`);
+  if (result.diagnosticsTitle !== "诊断与恢复") {
+    throw new Error(`diagnostics title mismatch: ${result.diagnosticsTitle}`);
+  }
+  if (result.diagnosticsRows < 3) throw new Error(`diagnostics rows missing: ${result.diagnosticsRows}`);
+  if (result.diagnosticsActions < 4) throw new Error(`diagnostics actions missing: ${result.diagnosticsActions}`);
+  if (!result.diagnosticsSafeNote) throw new Error("diagnostics page does not mention token-safe copy");
   console.log("tray ui smoke ok");
 }
 
@@ -834,6 +854,11 @@ ipcMain.handle("settings:get", () => ({ ...settings }));
 ipcMain.handle("settings:update", (_event, patch) => updateSettings(patch));
 ipcMain.handle("updates:check", () => runUpdateCheck());
 ipcMain.handle("notifications:test", () => testNotification());
+ipcMain.handle("diagnostics:copy", (_event, text) => {
+  const value = String(text || "");
+  clipboard.writeText(value);
+  return { copied: true, length: value.length };
+});
 ipcMain.handle("app:getInfo", () => buildAppInfo());
 ipcMain.handle("app:openCodexFolder", () => shell.openPath(path.join(os.homedir(), ".codex")));
 ipcMain.handle("app:openStatusFolder", () => openStatusFolder());

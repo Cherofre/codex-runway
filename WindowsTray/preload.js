@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("runway", {
   updateSettings: (patch) => ipcRenderer.invoke("settings:update", patch),
   checkForUpdates: () => ipcRenderer.invoke("updates:check"),
   testNotification: () => ipcRenderer.invoke("notifications:test"),
+  copyDiagnostics: (text) => ipcRenderer.invoke("diagnostics:copy", text),
   getAppInfo: () => ipcRenderer.invoke("app:getInfo"),
   openCodexFolder: () => ipcRenderer.invoke("app:openCodexFolder"),
   openStatusFolder: () => ipcRenderer.invoke("app:openStatusFolder"),

@@ -34,6 +34,7 @@ Progress:
 - Added `Scripts\Package-WindowsTray.ps1`, which builds a dedicated package CLI, copies Electron, the tray app, app icon, bundled CLI, and Swift runtime DLLs into `.build\windows-tray-portable\Codex Runway`, and creates `.build\CodexRunway-Windows-Portable.zip`.
 - WindowsTray detail pages now show information that is not present on the homepage: quota window cards and credit balance, reset credit full metadata, API exact window/explainer rows, and recent-session summary metrics with full IDs and exact timestamps.
 - WindowsTray settings now include Windows-backed appearance selection, status JSON export to `~/.codex-runway/status.json`, test notification, status-folder opening, GitHub/feedback links, and about/runtime info.
+- WindowsTray refresh errors now open a diagnostics/recovery detail page with immediate retry, safe diagnostic copy, Codex folder opening, and status JSON folder opening.
 
 Verification Evidence:
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` failed with `error: fatalError` after printing the `CodexRunwayCore` `swiftc` command and no Swift source diagnostics.
@@ -104,6 +105,10 @@ Verification Evidence:
 - `npm run check --prefix WindowsTray` passed after settings parity updates.
 - `npm test --prefix WindowsTray` passed after settings parity updates: 31 tests, 0 failures.
 - `npm run ui-smoke --prefix WindowsTray` passed after settings parity updates and now asserts appearance changes, status JSON export toggle behavior, and settings action buttons.
+- `npm run check --prefix WindowsTray` passed after diagnostics/recovery updates.
+- `npm test --prefix WindowsTray` passed after diagnostics/recovery updates: 32 tests, 0 failures.
+- `npm run ui-smoke --prefix WindowsTray` passed after diagnostics/recovery updates and now asserts the error panel opens `诊断与恢复`.
+- `npm run smoke --prefix WindowsTray` passed after diagnostics/recovery updates.
 
 Known Blockers:
 - Native SwiftPM build/test on this Windows Swift 6.3.2 toolchain fails with `error: fatalError`; direct `swiftc` compilation works. Do not claim `swift test` passes on Windows.
@@ -129,3 +134,4 @@ Known Blockers:
 - 2026-07-03: Added a portable Windows tray package script and verified the packaged app smoke path.
 - 2026-07-03: Expanded Windows detail pages so clicking into a section exposes additional metadata instead of repeating homepage cards.
 - 2026-07-04: Expanded Windows settings parity with appearance selection, local status JSON export, test notification, GitHub/feedback/about actions, and UI smoke coverage.
+- 2026-07-04: Added Windows refresh diagnostics/recovery detail page and token-safe diagnostic copy text.

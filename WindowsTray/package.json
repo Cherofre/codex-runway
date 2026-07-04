@@ -5,7 +5,7 @@
   "description": "Windows tray host for Codex Runway CLI JSON status.",
   "main": "main.js",
   "scripts": {
-    "check": "node --check main.js && node --check preload.js && node --check renderer.js && node --check status.js && node --check settings.js && node --check statusExport.js && node --check errorText.js && node --check refresh.js && node --check alerts.js && node --check maintenance.js && node --check startup.js && node --check updates.js",
+    "check": "node --check main.js && node --check preload.js && node --check renderer.js && node --check status.js && node --check settings.js && node --check statusExport.js && node --check diagnostics.js && node --check errorText.js && node --check refresh.js && node --check alerts.js && node --check maintenance.js && node --check startup.js && node --check updates.js",
     "preview": "electron . --show",
     "start": "electron .",
     "smoke": "electron . --smoke",
