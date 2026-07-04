@@ -24,6 +24,7 @@ const {
   syncCodexSessions,
 } = require("./maintenance");
 const { defaultSettings, mergeSettings } = require("./settings");
+const { buildStatusExportPath, writeStatusSnapshot } = require("./statusExport");
 const { buildLoginItemSettings } = require("./startup");
 const { checkForUpdates } = require("./updates");
 
@@ -32,6 +33,8 @@ const repoRoot = path.resolve(__dirname, "..");
 const smokeMode = process.env.CODEX_RUNWAY_TRAY_SMOKE === "1" || process.argv.includes("--smoke");
 const uiSmokeMode = process.env.CODEX_RUNWAY_TRAY_UI_SMOKE === "1" || process.argv.includes("--ui-smoke");
 const previewMode = process.env.CODEX_RUNWAY_TRAY_PREVIEW === "1" || process.argv.includes("--show");
+const projectUrl = "https://github.com/Licoy/codex-runway";
+const feedbackUrl = "https://github.com/Licoy/codex-runway/issues/new";
 if (uiSmokeMode) {
   app.setPath("userData", path.join(os.tmpdir(), `codex-runway-tray-ui-smoke-${process.pid}`));
 }
@@ -79,6 +82,7 @@ async function refreshStatus() {
       maxAttempts: 2,
       retryDelayMs: 1_200,
     });
+    exportStatusIfEnabled(latestSnapshot);
     deliverNotifications(latestSnapshot);
   } catch (error) {
     latestSnapshot = {
@@ -92,6 +96,7 @@ async function refreshStatus() {
       apiEquivalent: null,
       errors: [{ area: "tray.refresh", message: error.message }],
     };
+    exportStatusIfEnabled(latestSnapshot);
   } finally {
     isRefreshing = false;
     updateMenu();
@@ -117,6 +122,7 @@ function fallbackSnapshot({ loading = false } = {}) {
 function currentPayload({ loading = false } = {}) {
   return {
     loading,
+    appInfo: buildAppInfo(),
     settings: { ...settings },
     snapshot: latestSnapshot || fallbackSnapshot({ loading }),
   };
@@ -150,6 +156,38 @@ function saveSettings() {
   fs.writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
 }
 
+function appendSnapshotError(area, message) {
+  latestSnapshot = {
+    ...(latestSnapshot || fallbackSnapshot()),
+    errors: [
+      ...((latestSnapshot && latestSnapshot.errors) || []),
+      { area, message },
+    ],
+  };
+}
+
+function exportStatusIfEnabled(snapshot = latestSnapshot) {
+  if (!settings.exportsStatusJSON || !snapshot) return null;
+  try {
+    return writeStatusSnapshot(snapshot);
+  } catch (error) {
+    appendSnapshotError("status.export", error.message);
+    return null;
+  }
+}
+
+function buildAppInfo() {
+  return {
+    version: app.getVersion(),
+    platform: process.platform,
+    mode: app.isPackaged ? "packaged" : previewMode ? "preview" : "development",
+    userDataPath: app.getPath("userData"),
+    statusExportPath: buildStatusExportPath(),
+    projectUrl,
+    feedbackUrl,
+  };
+}
+
 function loginItemSettings(openAtLogin) {
   return buildLoginItemSettings({
     openAtLogin,
@@ -164,13 +202,7 @@ function applyStartupSetting(openAtLogin) {
   try {
     app.setLoginItemSettings(loginItemSettings(openAtLogin));
   } catch (error) {
-    latestSnapshot = {
-      ...(latestSnapshot || fallbackSnapshot()),
-      errors: [
-        ...((latestSnapshot && latestSnapshot.errors) || []),
-        { area: "settings.startup", message: error.message },
-      ],
-    };
+    appendSnapshotError("settings.startup", error.message);
   }
 }
 
@@ -304,11 +336,39 @@ function updateSettings(patch) {
   if (patch && Object.hasOwn(patch, "startAtLogin")) {
     applyStartupSetting(settings.startAtLogin);
   }
+  if (patch && Object.hasOwn(patch, "exportsStatusJSON") && settings.exportsStatusJSON) {
+    exportStatusIfEnabled();
+  }
   saveSettings();
   scheduleRefresh();
   updateMenu({ loading: isRefreshing });
   broadcastStatus({ loading: isRefreshing });
   return { ...settings };
+}
+
+function testNotification() {
+  showSystemNotice("Codex Runway", "测试通知已触发");
+  return {
+    summary: "测试通知已触发",
+    supported: typeof Notification.isSupported !== "function" || Notification.isSupported(),
+  };
+}
+
+async function openStatusFolder() {
+  const target = path.dirname(buildStatusExportPath());
+  fs.mkdirSync(target, { recursive: true });
+  const error = await shell.openPath(target);
+  return { target, ok: !error, error };
+}
+
+function openProjectUrl() {
+  shell.openExternal(projectUrl);
+  return { url: projectUrl };
+}
+
+function openFeedbackUrl() {
+  shell.openExternal(feedbackUrl);
+  return { url: feedbackUrl };
 }
 
 async function runUpdateCheck({ silent = false } = {}) {
@@ -399,19 +459,30 @@ async function runUiSmoke() {
       document.getElementById("settingsButton").click();
       await delay(80);
       const title = document.getElementById("detailTitle").textContent;
-      const select = document.querySelector(".select-control");
-      select.value = "10";
-      select.dispatchEvent(new Event("change", { bubbles: true }));
+      const appearanceSelect = document.querySelector('[data-setting="appearance"]');
+      appearanceSelect.value = "light";
+      appearanceSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      await delay(120);
+      const refreshSelect = document.querySelector('[data-setting="refreshIntervalMinutes"]');
+      refreshSelect.value = "10";
+      refreshSelect.dispatchEvent(new Event("change", { bubbles: true }));
       await delay(120);
       const firstToggle = document.querySelector(".toggle-switch input");
       firstToggle.click();
+      await delay(120);
+      const exportToggle = document.querySelector('[data-setting="exportsStatusJSON"]');
+      exportToggle.click();
       await delay(120);
       document.getElementById("settingsButton").click();
       await delay(80);
       const settingsResult = {
         title,
-        selectValue: document.querySelector(".select-control").value,
+        selectValue: document.querySelector('[data-setting="refreshIntervalMinutes"]').value,
+        appearanceValue: document.querySelector('[data-setting="appearance"]').value,
+        themeMode: document.documentElement.dataset.theme,
+        exportChecked: document.querySelector('[data-setting="exportsStatusJSON"]').checked,
         toggleCount: document.querySelectorAll(".toggle-switch input").length,
+        actionCount: document.querySelectorAll(".action-button").length,
         quotaHidden: document.getElementById("quotaSection").hidden,
         homeVisibleAfterToggle: !document.getElementById("homeView").hidden,
         detailHiddenAfterToggle: document.getElementById("detailView").hidden,
@@ -421,6 +492,7 @@ async function runUiSmoke() {
         loading: false,
         settings: {
           refreshIntervalMinutes: 5,
+          appearance: "system",
           showQuotaMeters: true,
           showResetCredits: true,
           showApiEquivalent: true,
@@ -428,6 +500,7 @@ async function runUiSmoke() {
           notificationsEnabled: false,
           startAtLogin: false,
           autoCheckUpdates: false,
+          exportsStatusJSON: false,
         },
         snapshot: {
           generatedAt: "2026-07-02T14:36:00Z",
@@ -550,6 +623,7 @@ async function runUiSmoke() {
         loading: false,
         settings: {
           refreshIntervalMinutes: 5,
+          appearance: "system",
           showQuotaMeters: true,
           showResetCredits: true,
           showApiEquivalent: true,
@@ -557,6 +631,7 @@ async function runUiSmoke() {
           notificationsEnabled: false,
           startAtLogin: false,
           autoCheckUpdates: false,
+          exportsStatusJSON: false,
         },
         snapshot: {
           generatedAt: "2026-07-02T14:37:00Z",
@@ -585,7 +660,11 @@ async function runUiSmoke() {
   `, true);
   if (result.title !== "设置") throw new Error(`settings title mismatch: ${result.title}`);
   if (result.selectValue !== "10") throw new Error(`refresh interval did not update: ${result.selectValue}`);
-  if (result.toggleCount < 7) throw new Error(`expected 7 setting toggles, got ${result.toggleCount}`);
+  if (result.appearanceValue !== "light") throw new Error(`appearance did not update: ${result.appearanceValue}`);
+  if (result.themeMode !== "light") throw new Error(`theme mode did not apply: ${result.themeMode}`);
+  if (!result.exportChecked) throw new Error("status JSON export toggle did not update");
+  if (result.toggleCount < 8) throw new Error(`expected 8 setting toggles, got ${result.toggleCount}`);
+  if (result.actionCount < 6) throw new Error(`expected settings action buttons, got ${result.actionCount}`);
   if (result.quotaHidden !== true) throw new Error("display toggle did not hide quota section");
   if (!result.homeVisibleAfterToggle || !result.detailHiddenAfterToggle) {
     throw new Error("settings button did not toggle back to home");
@@ -700,6 +779,10 @@ function updateMenu({ loading = false } = {}) {
       click: () => runUpdateCheck(),
     },
     { type: "separator" },
+    { label: "打开状态 JSON 目录", click: openStatusFolder },
+    { label: "打开 GitHub 项目", click: openProjectUrl },
+    { label: "反馈 Issue", click: openFeedbackUrl },
+    { type: "separator" },
     { label: "打开 Codex 文件夹", click: () => shell.openPath(path.join(os.homedir(), ".codex")) },
     { label: "退出托盘", click: () => app.quit() },
   ]));
@@ -750,7 +833,12 @@ ipcMain.handle("status:refresh", () => refreshStatus());
 ipcMain.handle("settings:get", () => ({ ...settings }));
 ipcMain.handle("settings:update", (_event, patch) => updateSettings(patch));
 ipcMain.handle("updates:check", () => runUpdateCheck());
+ipcMain.handle("notifications:test", () => testNotification());
+ipcMain.handle("app:getInfo", () => buildAppInfo());
 ipcMain.handle("app:openCodexFolder", () => shell.openPath(path.join(os.homedir(), ".codex")));
+ipcMain.handle("app:openStatusFolder", () => openStatusFolder());
+ipcMain.handle("app:openGitHub", () => openProjectUrl());
+ipcMain.handle("app:openFeedback", () => openFeedbackUrl());
 ipcMain.handle("app:closePanel", () => hideStatusWindow());
 
 app.on("window-all-closed", () => {

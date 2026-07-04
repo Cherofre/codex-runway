@@ -29,8 +29,10 @@ const elements = {
 };
 
 const allowedRefreshIntervals = [1, 5, 10, 30];
+const allowedAppearances = ["system", "dark", "light"];
 const defaultSettings = {
   refreshIntervalMinutes: 5,
+  appearance: "system",
   showQuotaMeters: true,
   showResetCredits: true,
   showApiEquivalent: true,
@@ -38,15 +40,26 @@ const defaultSettings = {
   notificationsEnabled: false,
   startAtLogin: false,
   autoCheckUpdates: false,
+  exportsStatusJSON: false,
 };
 
 let latestPayload = null;
 let currentView = "home";
 let settings = { ...defaultSettings };
+let appInfo = {
+  version: "--",
+  platform: "win32",
+  mode: "development",
+  statusExportPath: "",
+  projectUrl: "",
+  feedbackUrl: "",
+};
 
 function render(payload) {
   latestPayload = payload;
   settings = normalizeSettings(payload?.settings || settings);
+  appInfo = normalizeAppInfo(payload?.appInfo || appInfo);
+  applyAppearance();
   const snapshot = payload?.snapshot || {};
   const quota = snapshot.quota;
   elements.refreshButton.classList.toggle("loading", Boolean(payload?.loading));
@@ -195,6 +208,9 @@ function normalizeSettings(input = {}) {
     : defaultSettings.refreshIntervalMinutes;
   return {
     refreshIntervalMinutes,
+    appearance: allowedAppearances.includes(source.appearance)
+      ? source.appearance
+      : defaultSettings.appearance,
     showQuotaMeters: typeof source.showQuotaMeters === "boolean"
       ? source.showQuotaMeters
       : defaultSettings.showQuotaMeters,
@@ -216,7 +232,29 @@ function normalizeSettings(input = {}) {
     autoCheckUpdates: typeof source.autoCheckUpdates === "boolean"
       ? source.autoCheckUpdates
       : defaultSettings.autoCheckUpdates,
+    exportsStatusJSON: typeof source.exportsStatusJSON === "boolean"
+      ? source.exportsStatusJSON
+      : defaultSettings.exportsStatusJSON,
   };
+}
+
+function normalizeAppInfo(input = {}) {
+  const source = input && typeof input === "object" ? input : {};
+  return {
+    version: String(source.version || "--"),
+    platform: String(source.platform || "win32"),
+    mode: String(source.mode || "development"),
+    userDataPath: String(source.userDataPath || ""),
+    statusExportPath: String(source.statusExportPath || ""),
+    projectUrl: String(source.projectUrl || ""),
+    feedbackUrl: String(source.feedbackUrl || ""),
+  };
+}
+
+function applyAppearance() {
+  const systemTheme = window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  document.documentElement.dataset.theme = settings.appearance === "system" ? systemTheme : settings.appearance;
+  document.documentElement.dataset.preference = settings.appearance;
 }
 
 function applySettingsVisibility() {
@@ -229,10 +267,12 @@ function applySettingsVisibility() {
 
 async function applySettingsPatch(patch) {
   settings = normalizeSettings({ ...settings, ...patch });
+  applyAppearance();
   applySettingsVisibility();
   if (currentView === "settings") renderSettingsDetail();
   try {
     settings = normalizeSettings(await window.runway.updateSettings(patch));
+    applyAppearance();
     applySettingsVisibility();
     if (currentView === "settings") renderSettingsDetail();
   } catch (error) {
@@ -245,6 +285,38 @@ async function requestUpdateCheck() {
     await window.runway.checkForUpdates();
   } catch (error) {
     renderErrors([{ area: "updates.check", message: error.message }]);
+  }
+}
+
+async function requestTestNotification() {
+  try {
+    await window.runway.testNotification();
+  } catch (error) {
+    renderErrors([{ area: "notifications.test", message: error.message }]);
+  }
+}
+
+async function requestStatusFolder() {
+  try {
+    await window.runway.openStatusFolder();
+  } catch (error) {
+    renderErrors([{ area: "status.folder", message: error.message }]);
+  }
+}
+
+async function requestGitHub() {
+  try {
+    await window.runway.openGitHub();
+  } catch (error) {
+    renderErrors([{ area: "links.github", message: error.message }]);
+  }
+}
+
+async function requestFeedback() {
+  try {
+    await window.runway.openFeedback();
+  } catch (error) {
+    renderErrors([{ area: "links.feedback", message: error.message }]);
   }
 }
 
@@ -408,8 +480,28 @@ function renderSettingsDetail() {
   elements.detailSubtitle.textContent = "Windows 托盘 · 本机保存";
   elements.detailContent.replaceChildren();
 
+  const appearanceSelect = document.createElement("select");
+  appearanceSelect.className = "select-control appearance-select";
+  appearanceSelect.dataset.setting = "appearance";
+  appearanceSelect.setAttribute("aria-label", "主题");
+  for (const [value, label] of [
+    ["system", "跟随系统"],
+    ["dark", "深色"],
+    ["light", "浅色"],
+  ]) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    option.selected = value === settings.appearance;
+    appearanceSelect.append(option);
+  }
+  appearanceSelect.addEventListener("change", () => {
+    applySettingsPatch({ appearance: appearanceSelect.value });
+  });
+
   const refreshSelect = document.createElement("select");
   refreshSelect.className = "select-control";
+  refreshSelect.dataset.setting = "refreshIntervalMinutes";
   refreshSelect.setAttribute("aria-label", "刷新间隔");
   for (const minutes of allowedRefreshIntervals) {
     const option = document.createElement("option");
@@ -423,7 +515,8 @@ function renderSettingsDetail() {
   });
 
   elements.detailContent.append(
-    settingsGroup("刷新", [
+    settingsGroup("外观", [
+      settingRow("主题", "面板外观会立即生效", appearanceSelect),
       settingRow("自动刷新", "托盘后台状态更新频率", refreshSelect),
     ]),
     settingsGroup("首页显示", [
@@ -448,10 +541,24 @@ function renderSettingsDetail() {
       settingRow("通知提醒", "配额阈值和重置临期", toggleControl(settings.notificationsEnabled, (checked) => {
         applySettingsPatch({ notificationsEnabled: checked });
       })),
+      settingRow("测试通知", "发送一条 Windows 系统通知", actionButton("测试", requestTestNotification)),
       settingRow("自动检查更新", "启动托盘时检查 GitHub Release", toggleControl(settings.autoCheckUpdates, (checked) => {
         applySettingsPatch({ autoCheckUpdates: checked });
       })),
       settingRow("检查更新", "手动查看可用发布版本", actionButton("检查", requestUpdateCheck)),
+    ]),
+    settingsGroup("数据", [
+      settingRow("导出状态 JSON", "~/.codex-runway/status.json", toggleControl(settings.exportsStatusJSON, (checked) => {
+        applySettingsPatch({ exportsStatusJSON: checked });
+      }, "exportsStatusJSON")),
+      settingRow("状态 JSON 目录", appInfo.statusExportPath || "导出目录", actionButton("打开", requestStatusFolder)),
+      settingRow("Codex 文件夹", "~/.codex", actionButton("打开", () => window.runway.openCodexFolder())),
+    ]),
+    settingsGroup("关于", [
+      settingRow("版本", `平台 ${platformLabel(appInfo.platform)}`, statusPill(appInfo.version)),
+      settingRow("运行模式", appInfo.userDataPath || "Electron userData", statusPill(modeLabel(appInfo.mode))),
+      settingRow("GitHub 项目", "Licoy/codex-runway", actionButton("打开", requestGitHub)),
+      settingRow("反馈 Issue", "提交问题或功能建议", actionButton("反馈", requestFeedback)),
     ]),
     detailNote("设置保存在 Electron userData 目录，不会写入 Codex 会话文件。"));
 }
@@ -480,12 +587,13 @@ function settingRow(title, subtitle, control, options = {}) {
   return row;
 }
 
-function toggleControl(checked, onChange) {
+function toggleControl(checked, onChange, settingName = "") {
   const label = document.createElement("label");
   label.className = "toggle-switch";
   const input = document.createElement("input");
   input.type = "checkbox";
   input.checked = checked;
+  if (settingName) input.dataset.setting = settingName;
   input.addEventListener("change", () => onChange(input.checked));
   const slider = document.createElement("span");
   slider.className = "toggle-slider";
@@ -503,7 +611,19 @@ function actionButton(text, onClick) {
   const button = textNode("button", text);
   button.className = "action-button";
   button.type = "button";
-  button.addEventListener("click", onClick);
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    const originalText = button.textContent;
+    button.textContent = "处理中";
+    try {
+      await onClick();
+    } catch (error) {
+      renderErrors([{ area: "action", message: error.message }]);
+    } finally {
+      button.textContent = originalText;
+      button.disabled = false;
+    }
+  });
   return button;
 }
 
@@ -829,6 +949,20 @@ function stateLabel(value) {
   return value || "--";
 }
 
+function platformLabel(value) {
+  if (value === "win32") return "Windows";
+  if (value === "darwin") return "macOS";
+  if (value === "linux") return "Linux";
+  return value || "--";
+}
+
+function modeLabel(value) {
+  if (value === "packaged") return "便携包";
+  if (value === "preview") return "预览";
+  if (value === "development") return "开发";
+  return value || "--";
+}
+
 function riskLabel(risk, status) {
   if (status && status !== "available") return status;
   if (risk === "expiring") return "即将到期";
@@ -854,6 +988,9 @@ window.runway.getStatus().then((payload) => {
   updateViewControls();
   render(payload);
 });
+
+const colorSchemeQuery = window.matchMedia?.("(prefers-color-scheme: light)");
+colorSchemeQuery?.addEventListener("change", applyAppearance);
 
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape") window.runway.closePanel();

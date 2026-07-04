@@ -79,14 +79,14 @@ Consequences:
 
 Status: active
 
-Context: The Windows tray host needs local preferences before there is a packaged installer or full macOS parity. Settings should not mutate Codex auth/session files.
+Context: The Windows tray host needs local preferences before there is a signed installer or full release channel. Settings should not mutate Codex auth/session files.
 
-Decision: Store Windows tray preferences in Electron `userData/settings.json` and expose only settings that currently have real runtime behavior: refresh interval and homepage section visibility.
+Decision: Store Windows tray preferences in Electron `userData/settings.json` and expose only settings that currently have real Windows runtime behavior: refresh interval, appearance, homepage visibility, startup, notifications, update checks, and local status JSON export.
 
 Consequences:
 - Preferences survive tray restarts without touching `~/.codex`.
 - Renderer settings can be smoke-tested through Electron IPC.
-- System-level features such as startup integration, notifications, and update checks stay visible as not-yet-ported status rows until they are implemented.
+- Settings that are macOS-only or release-channel-only should stay out of the Windows UI until there is a real Windows behavior behind them.
 
 ### Decision: Handle Transient Network Errors In The Tray Host
 

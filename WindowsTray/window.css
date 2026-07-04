@@ -13,6 +13,21 @@
   --red: #ff6b6b;
 }
 
+:root[data-theme="light"] {
+  --surface: #edf5fb;
+  --surface-strong: #dcebf5;
+  --surface-soft: #cfe1ee;
+  --surface-softer: #c2d5e4;
+  --line: rgba(38, 75, 103, 0.18);
+  --text: #102538;
+  --muted: #536e82;
+  --faint: #7890a2;
+  --green: #26b84a;
+  --blue: #1f6fee;
+  --yellow: #a77800;
+  --red: #ca4545;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -46,6 +61,14 @@ button {
   border: 1px solid rgba(211, 236, 255, 0.16);
   border-radius: 10px;
   box-shadow: 0 22px 60px rgba(0, 0, 0, 0.46);
+}
+
+:root[data-theme="light"] .app-shell {
+  background:
+    radial-gradient(circle at 14% 4%, rgba(53, 128, 186, 0.13), transparent 30%),
+    linear-gradient(180deg, #f6fbff 0%, #edf5fb 48%, #e4eff7 100%);
+  border-color: rgba(38, 75, 103, 0.2);
+  box-shadow: 0 22px 54px rgba(25, 63, 93, 0.26);
 }
 
 [hidden] {
@@ -906,6 +929,82 @@ h2 {
   color: #e5f3ff;
   background: rgba(255, 255, 255, 0.075);
   cursor: pointer;
+}
+
+:root[data-theme="light"] h1,
+:root[data-theme="light"] .section-heading,
+:root[data-theme="light"] .settings-heading,
+:root[data-theme="light"] .quota-line,
+:root[data-theme="light"] .quota-window-header strong {
+  color: #102538;
+}
+
+:root[data-theme="light"] .icon-button,
+:root[data-theme="light"] .back-button,
+:root[data-theme="light"] .footer-button {
+  color: #16334a;
+  background: rgba(25, 72, 107, 0.08);
+}
+
+:root[data-theme="light"] .icon-button:hover,
+:root[data-theme="light"] .footer-button:hover,
+:root[data-theme="light"] .row-card:hover,
+:root[data-theme="light"] .back-button:hover,
+:root[data-theme="light"] .action-button:hover {
+  background: rgba(25, 72, 107, 0.14);
+}
+
+:root[data-theme="light"] .mini-card,
+:root[data-theme="light"] .session-item,
+:root[data-theme="light"] .metric-card,
+:root[data-theme="light"] .detail-note,
+:root[data-theme="light"] .setting-row,
+:root[data-theme="light"] .reset-summary,
+:root[data-theme="light"] .detail-table,
+:root[data-theme="light"] .quota-window-card,
+:root[data-theme="light"] .reset-credit-row,
+:root[data-theme="light"] .session-detail-row,
+:root[data-theme="light"] .api-explainer {
+  background: rgba(255, 255, 255, 0.64);
+}
+
+:root[data-theme="light"] .select-control,
+:root[data-theme="light"] .action-button {
+  color: #102538;
+  border-color: rgba(38, 75, 103, 0.2);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+:root[data-theme="light"] .status-pill {
+  color: #16334a;
+  background: rgba(25, 72, 107, 0.1);
+}
+
+:root[data-theme="light"] .progress-track,
+:root[data-theme="light"] .toggle-slider,
+:root[data-theme="light"] .reset-summary-facts,
+:root[data-theme="light"] .quota-window-facts {
+  background: rgba(31, 76, 110, 0.12);
+}
+
+:root[data-theme="light"] .summary-fact strong,
+:root[data-theme="light"] .detail-chip strong,
+:root[data-theme="light"] .api-explainer-row strong,
+:root[data-theme="light"] .quota-window-header span,
+:root[data-theme="light"] .session-cost,
+:root[data-theme="light"] .session-detail-side {
+  color: #17334a;
+}
+
+:root[data-theme="light"] .empty-state {
+  border-color: rgba(38, 75, 103, 0.16);
+  background: rgba(255, 255, 255, 0.42);
+}
+
+:root[data-theme="light"] .error-panel {
+  color: #8d2020;
+  border-color: rgba(202, 69, 69, 0.34);
+  background: rgba(202, 69, 69, 0.1);
 }
 
 @keyframes spin {

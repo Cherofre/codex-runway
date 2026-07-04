@@ -1,11 +1,12 @@
 ## Now
 
-1. Restart the local Windows tray preview after the latest package changes and let the user inspect the popup/menu.
-2. Manually verify right-click tray actions when acceptable: `同步/修复会话`, `重启 Codex`, and `重启 VSCode`.
-3. Decide whether to keep `Scripts\Build-WindowsCLI.ps1` as the Windows development path or continue investigating SwiftPM's `error: fatalError`.
-4. If investigating SwiftPM, start from the reproduced command: `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v`.
-5. Re-test on macOS before merging, because `Package.swift` now gates the AppKit app and dependencies under `#if os(macOS)`.
-6. For a release-quality Windows build, decide whether to add a signed installer/update channel on top of the current portable unsigned package.
+1. Add a Windows tray diagnostics/recovery flow for refresh errors: retry, copy diagnostics, and open relevant local folders from the popup.
+2. Restart the local Windows tray preview after the diagnostics changes and let the user inspect the popup/menu.
+3. Manually verify right-click tray actions when acceptable: `同步/修复会话`, `重启 Codex`, and `重启 VSCode`.
+4. Decide whether to keep `Scripts\Build-WindowsCLI.ps1` as the Windows development path or continue investigating SwiftPM's `error: fatalError`.
+5. If investigating SwiftPM, start from the reproduced command: `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v`.
+6. Re-test on macOS before merging, because `Package.swift` now gates the AppKit app and dependencies under `#if os(macOS)`.
+7. For a release-quality Windows build, decide whether to add a signed installer/update channel on top of the current portable unsigned package.
 
 ## Handoff Notes
 
@@ -23,15 +24,16 @@ Do not redo:
 - `npm install --prefix WindowsTray` has already been run; `WindowsTray/package-lock.json` exists.
 - The popup close controls now hide the panel only; full quit is in the tray context menu.
 - Reset credit row details are available through `resetCredits.credits[]` in the CLI JSON.
-- Basic Windows tray settings are implemented and stored under Electron `userData`; unsupported system settings are shown as not-yet-ported status rows.
+- Windows tray settings are implemented and stored under Electron `userData`; implemented settings include refresh interval, appearance, homepage visibility, startup, notifications, update checks, and status JSON export.
 - Windows tray startup and update-check settings are implemented. Update checking opens GitHub Releases when a newer tag is found; it does not silently install updates.
 - Notification alerts are implemented as an opt-in setting and de-duplicated through Electron `userData/alerts.json`.
 - Right-click tray maintenance actions are implemented. Session sync/repair asks for confirmation, writes backups under `~/.codex/backups_state/provider-sync` when it changes files, and was not manually clicked during automated verification.
 - Quota, reset, API, and recent-session entries now open Chinese detail pages with information that is not duplicated from the homepage; UI smoke asserts richer detail metadata.
+- Settings include appearance selection, test notification, status JSON export/open-folder actions, GitHub/feedback/about rows, and UI smoke coverage for the main settings interactions.
 - A portable unsigned Windows package is implemented by `Scripts\Package-WindowsTray.ps1`; it bundles the tray app, `CodexRunwayCLI.exe`, app icon, and Swift runtime DLLs.
 
 Verify next:
-- `npm run preview --prefix WindowsTray` for persistent popup UI behavior.
+- `npm run preview --prefix WindowsTray` for persistent popup UI behavior, especially settings and upcoming diagnostics actions.
 - Manually inspect that each detail page is visually useful: recent sessions should show summary metrics, exact timestamps, and full IDs; quota should show per-window cards; API should show exact window/explainer rows; reset should show full per-credit metadata.
 - Manually verify right-click tray actions when acceptable: `同步/修复会话`, `重启 Codex`, and `重启 VSCode`.
 - `npm run ui-smoke --prefix WindowsTray` for renderer settings, quota/reset/recent detail pages, and friendly error smoke coverage.

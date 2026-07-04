@@ -14,6 +14,8 @@ test("normalizeSettings falls back to defaults for invalid input", () => {
     showResetCredits: 1,
     showApiEquivalent: null,
     showRecentSessions: undefined,
+    appearance: "sepia",
+    exportsStatusJSON: "yes",
   }), defaultSettings);
 });
 
@@ -25,6 +27,8 @@ test("mergeSettings applies supported values and ignores unknown keys", () => {
     notificationsEnabled: true,
     startAtLogin: true,
     autoCheckUpdates: true,
+    appearance: "light",
+    exportsStatusJSON: true,
     unknown: "ignored",
   });
 
@@ -36,6 +40,8 @@ test("mergeSettings applies supported values and ignores unknown keys", () => {
     notificationsEnabled: true,
     startAtLogin: true,
     autoCheckUpdates: true,
+    appearance: "light",
+    exportsStatusJSON: true,
   });
   assert.equal(Object.hasOwn(settings, "unknown"), false);
 });

@@ -1,6 +1,6 @@
 ## Current Snapshot
 
-Last Updated: 2026-07-03
+Last Updated: 2026-07-04
 
 Goal: Port Codex Runway toward Windows in two stages: first a cross-platform CLI, then a Windows tray host that consumes the CLI.
 
@@ -33,6 +33,7 @@ Progress:
 - WindowsTray popup now has clickable quota and recent-session entries with Chinese detail pages and back navigation.
 - Added `Scripts\Package-WindowsTray.ps1`, which builds a dedicated package CLI, copies Electron, the tray app, app icon, bundled CLI, and Swift runtime DLLs into `.build\windows-tray-portable\Codex Runway`, and creates `.build\CodexRunway-Windows-Portable.zip`.
 - WindowsTray detail pages now show information that is not present on the homepage: quota window cards and credit balance, reset credit full metadata, API exact window/explainer rows, and recent-session summary metrics with full IDs and exact timestamps.
+- WindowsTray settings now include Windows-backed appearance selection, status JSON export to `~/.codex-runway/status.json`, test notification, status-folder opening, GitHub/feedback links, and about/runtime info.
 
 Verification Evidence:
 - `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v` failed with `error: fatalError` after printing the `CodexRunwayCore` `swiftc` command and no Swift source diagnostics.
@@ -100,12 +101,15 @@ Verification Evidence:
 - `npm run smoke --prefix WindowsTray` passed after richer detail-page updates.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File Scripts\Package-WindowsTray.ps1` passed after richer detail-page updates and regenerated the portable zip.
 - Packaged smoke verification passed again with `Start-Process -Wait` against `.build\windows-tray-portable\Codex Runway\Codex Runway.exe --smoke`.
+- `npm run check --prefix WindowsTray` passed after settings parity updates.
+- `npm test --prefix WindowsTray` passed after settings parity updates: 31 tests, 0 failures.
+- `npm run ui-smoke --prefix WindowsTray` passed after settings parity updates and now asserts appearance changes, status JSON export toggle behavior, and settings action buttons.
 
 Known Blockers:
 - Native SwiftPM build/test on this Windows Swift 6.3.2 toolchain fails with `error: fatalError`; direct `swiftc` compilation works. Do not claim `swift test` passes on Windows.
 - The Windows tray runtime has been smoke-tested and manually inspected, and a portable unsigned package now exists. It is still experimental and not a signed installer.
 - The development Windows CLI executable currently depends on the installed Swift runtime being present; the portable package bundles Swift runtime DLLs beside the CLI.
-- Several macOS app features are not yet ported: signed installer/notarization-equivalent distribution, automatic in-app updating, and full Windows UI parity. Basic Windows tray settings now exist, including startup integration and update checking.
+- Several macOS app/release features are not yet ported: signed installer/notarization-equivalent distribution, automatic in-app updating, and macOS regression verification. Windows tray settings now cover the settings that have real Windows runtime behavior.
 
 ## History
 
@@ -124,3 +128,4 @@ Known Blockers:
 - 2026-07-03: Added quota and recent-session detail pages to the Windows popup.
 - 2026-07-03: Added a portable Windows tray package script and verified the packaged app smoke path.
 - 2026-07-03: Expanded Windows detail pages so clicking into a section exposes additional metadata instead of repeating homepage cards.
+- 2026-07-04: Expanded Windows settings parity with appearance selection, local status JSON export, test notification, GitHub/feedback/about actions, and UI smoke coverage.
