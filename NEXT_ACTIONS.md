@@ -1,12 +1,11 @@
 ## Now
 
-1. Regenerate the portable Windows tray package after the latest settings and diagnostics changes.
-2. Restart the local Windows tray preview after packaging and let the user inspect the popup/menu.
-3. Manually verify right-click tray actions when acceptable: `同步/修复会话`, `重启 Codex`, and `重启 VSCode`.
-4. Decide whether to keep `Scripts\Build-WindowsCLI.ps1` as the Windows development path or continue investigating SwiftPM's `error: fatalError`.
-5. If investigating SwiftPM, start from the reproduced command: `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v`.
-6. Re-test on macOS before merging, because `Package.swift` now gates the AppKit app and dependencies under `#if os(macOS)`.
-7. For a release-quality Windows build, decide whether to add a signed installer/update channel on top of the current portable unsigned package.
+1. Restart the local Windows tray preview after packaging and let the user inspect the popup/menu.
+2. Manually verify right-click tray actions when acceptable: `同步/修复会话`, `重启 Codex`, and `重启 VSCode`.
+3. Decide whether to keep `Scripts\Build-WindowsCLI.ps1` as the Windows development path or continue investigating SwiftPM's `error: fatalError`.
+4. If investigating SwiftPM, start from the reproduced command: `swift test --scratch-path C:\tmp\cr-test-final --disable-index-store -j 1 -v`.
+5. Re-test on macOS before merging, because `Package.swift` now gates the AppKit app and dependencies under `#if os(macOS)`.
+6. For a release-quality Windows build, decide whether to add a signed installer/update channel on top of the current portable unsigned package.
 
 ## Handoff Notes
 

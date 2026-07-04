@@ -109,6 +109,8 @@ Verification Evidence:
 - `npm test --prefix WindowsTray` passed after diagnostics/recovery updates: 32 tests, 0 failures.
 - `npm run ui-smoke --prefix WindowsTray` passed after diagnostics/recovery updates and now asserts the error panel opens `诊断与恢复`.
 - `npm run smoke --prefix WindowsTray` passed after diagnostics/recovery updates.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File Scripts\Package-WindowsTray.ps1` passed after settings and diagnostics updates, regenerating `.build\windows-tray-portable\Codex Runway` and `.build\CodexRunway-Windows-Portable.zip`.
+- Packaged smoke verification passed after settings and diagnostics updates with `Start-Process -Wait` against `.build\windows-tray-portable\Codex Runway\Codex Runway.exe --smoke`.
 
 Known Blockers:
 - Native SwiftPM build/test on this Windows Swift 6.3.2 toolchain fails with `error: fatalError`; direct `swiftc` compilation works. Do not claim `swift test` passes on Windows.
